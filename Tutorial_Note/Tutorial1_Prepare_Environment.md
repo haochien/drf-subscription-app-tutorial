@@ -139,3 +139,39 @@ django-admin startproject subscription_app
 cd subscription_app
 python manage.py runserver
 ```
+
+## Bring the project to Github
+### 1. Create a GitHub Repository:
+* Go to GitHub (https://github.com) and log in to your account.
+* Click on the "+" icon at the top right corner and select "New repository".
+* Fill in the repository name, description (optional), and choose the repository to be public or private.
+* Click on "Create repository".
+
+
+### 2. Initialize Git in the Django Project Directory:
+Open a terminal or command promp and navigate to your Django project directory
+```sh
+# Set your global Git user name and email
+git config --global user.name "Hao"
+git config --global user.email "hao@example.com"
+
+# Navigate to your project directory
+cd ../drf-subscription-app-tutorial
+
+# Initialize a new Git repository
+git init
+
+# Add all files to the repository
+git add .
+
+# Commit the files
+git commit -m "setup project"
+
+# Add the remote repository
+git remote add origin https://github.com/yourusername/your-repository-name.git
+
+# Push the committed files to the GitHub repository
+git branch -M main
+git push -u origin main
+```
+
