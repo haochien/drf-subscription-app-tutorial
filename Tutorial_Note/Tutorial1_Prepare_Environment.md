@@ -141,7 +141,18 @@ python manage.py runserver
 ```
 
 ## Bring the project to Github
-### 1. Create a GitHub Repository:
+### 1. Create .gitignore in the project folder
+```
+drf-subscription-app-Tutorial/
+├─ backend/
+│  ├─ subscription_app/
+│  ├─ requirements.txt
+├─ frontend/
+├─ .gitignore
+```
+
+
+### 2. Create a GitHub Repository:
 * Go to GitHub (https://github.com) and log in to your account.
 * Click on the "+" icon at the top right corner and select "New repository".
 * Fill in the repository name, description (optional), and choose the repository to be public or private.
