@@ -49,14 +49,14 @@ djangorestframework==3.15.0
 Navigate to Your Project Directory and then create a Virtual Environment.
 After virtual environment is created. Activate the Virtual Environment
 ```sh
-cd ../drf-subscription-app-tutorial
+cd .\drf-subscription-app-tutorial
 python -m venv env
 .\env\Scripts\activate
 ```
 
 Then install basic libraries from requirements.txt
 ```sh
-cd backend
+cd .\backend
 pip install -r requirements.txt
 pip list  # check installation
 ```
@@ -123,18 +123,18 @@ djangorestframework==3.15.0
 
 
 ```sh
-cd ../drf-subscription-app-tutorial
+cd .\drf-subscription-app-tutorial
 conda create --name env python=3.11
 conda activate env
 conda install pip
-cd ../drf-subscription-app-tutorial/backend
+cd .\drf-subscription-app-tutorial/backend
 pip install -r requirements.txt
 ```
 
 
 ## Set up Djnago project and start the server
 ```sh
-cd ../drf-subscription-app-tutorial/backend
+cd .\drf-subscription-app-tutorial/backend
 django-admin startproject subscription_app
 cd subscription_app
 python manage.py runserver
@@ -159,7 +159,7 @@ drf-subscription-app-Tutorial/
 * Click on "Create repository".
 
 
-### 2. Initialize Git in the Django Project Directory:
+### 3. Initialize Git in the Django Project Directory:
 Open a terminal or command promp and navigate to your Django project directory
 ```sh
 # Set your global Git user name and email
