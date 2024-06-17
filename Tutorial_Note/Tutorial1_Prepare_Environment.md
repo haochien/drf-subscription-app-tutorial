@@ -34,8 +34,7 @@ set up the structure of project directory as following:
 
 ```
 drf-subscription-app-tutorial/
-├─ backend/
-│  ├─ requirements.txt
+├─ requirements.txt
 ├─ frontend/
 ```
 
@@ -98,8 +97,7 @@ set up the structure of project directory as following:
 
 ```
 drf-subscription-app-tutorial/
-├─ backend/
-│  ├─ requirements.txt
+├─ requirements.txt
 ├─ frontend/
 ```
 
@@ -134,18 +132,19 @@ pip install -r requirements.txt
 
 ## Set up Djnago project and start the server
 ```sh
-cd .\drf-subscription-app-tutorial/backend
-django-admin startproject subscription_app
-cd subscription_app
+cd .\drf-subscription-app-tutorial
+django-admin startproject backend
+cd backend
 python manage.py runserver
 ```
 
 ## Bring the project to Github
-### 1. Create .gitignore in the project folder
+### 1. Move requirement.txt to `/backend` and create `.gitignore` in the project folder
 ```
 drf-subscription-app-Tutorial/
 ├─ backend/
-│  ├─ subscription_app/
+│  ├─ backend/
+│  ├─ manage.py
 │  ├─ requirements.txt
 ├─ frontend/
 ├─ .gitignore
