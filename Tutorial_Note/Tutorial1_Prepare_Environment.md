@@ -17,7 +17,7 @@ After downloading the Python, open Command Prompt, then try
 python --V
 ```
 
->Q&A
+>Q&A:
 >
 >**1. python command cannot be found**:
 >
@@ -84,7 +84,7 @@ After downloading the Anaconda, open Command Prompt, then try
 conda --version
 ```
 
->Q&A
+>Q&A:
 >
 >**1. Conda command cannot be found**:
 >
@@ -128,6 +128,7 @@ djangorestframework==3.15.0
 ```
 
 >Q&A:
+>
 >**1. how to check library version**:
 >
 > ```sh
