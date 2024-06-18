@@ -32,7 +32,16 @@ Using Docker is a convenient way to run PostgreSQL locally without installing it
 
 #### a. Create a Docker Container for PostgreSQL
 
-Create a docker-compose.yml file in your project directory.
+Download Docker via [Docker website](https://www.docker.com/products/docker-desktop/)
+
+Check whether download is successful via following commands:
+
+```sh
+docker --version
+docker-compose --version
+```
+
+Then create a docker-compose.yml file in your project directory.
 In this tutorial, we create a local_db folder and put ymal file inside it
 
 ```plaintext
@@ -66,6 +75,9 @@ docker-compose up -d
 
 # check whether the container of the PostgreSQL DB is active
 docker ps
+
+# if you want to shut down the container
+docker-compose down
 ```
 
 ### 3. Cloud Setup
