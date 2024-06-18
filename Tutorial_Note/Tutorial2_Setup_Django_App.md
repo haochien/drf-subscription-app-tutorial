@@ -61,7 +61,7 @@ drf-subscription-app-Tutorial/
 
 Then move some of private information or environment-based information from `setting.py` to `.env`:
 
-```plaintext
+```env
 # .env
 
 DEBUG=True
@@ -107,12 +107,15 @@ INSTALLED_APPS = [
 
 class TestModel(models.Model):
     test_id = models.AutoField(primary_key=True)
-    display_name = models.CharField(max_length=20, null=True, blank=True)
-    is_active = models.IntegerField(default=1)
-
+    display_name = models.CharField(max_length=20)
+    test_count = models.IntegerField(null=True, blank=True)
+    is_active = models.BooleanField (default=1)
 
     def __str__(self):
         return str(self.display_name)
+    
+    class Meta:
+        db_table = 'test_model'  # This will create a table named 'test_model'
 ```
 
 ### 2. Create a Serializer
@@ -210,7 +213,9 @@ python manage.py migrate
 ```
 
 ### 6. Start server and test api
+
 start the server
+
 ```sh
 cd .\backend
 python manage.py runserver
