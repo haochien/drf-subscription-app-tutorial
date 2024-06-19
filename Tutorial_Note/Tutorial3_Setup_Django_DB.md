@@ -129,11 +129,11 @@ Configure the database settings in your Django project's `settings.py` file.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DATABASE_NAME'),
-        'USER': env('DATABASE_USER'),
-        'PASSWORD': env('DATABASE_PASSWORD'),
-        'HOST': env('DATABASE_HOST', default='localhost'),
-        'PORT': env('DATABASE_PORT', default=5432),
+        'NAME': ENV('DATABASE_NAME'),
+        'USER': ENV('DATABASE_USER'),
+        'PASSWORD': ENV('DATABASE_PASSWORD'),
+        'HOST': ENV('DATABASE_HOST', default='localhost'),
+        'PORT': ENV('DATABASE_PORT', default=5432),
     }
 }
 

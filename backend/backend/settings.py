@@ -12,27 +12,31 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import environ
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# export DRF_ENV_PATH to environment while deploy to production environment
+ENV_PATH = os.getenv('DRF_ENV_PATH', BASE_DIR / '.env')
+
 
 # Initialize environment variables
-env = environ.Env(
+ENV = environ.Env(
     DEBUG=(bool, False)
 )
 
-environ.Env.read_env(BASE_DIR / '.env')
+environ.Env.read_env(ENV_PATH)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = ENV('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+DEBUG = ENV('DEBUG')
 
 ALLOWED_HOSTS = []
 
@@ -87,11 +91,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DATABASE_NAME'),
-        'USER': env('DATABASE_USER'),
-        'PASSWORD': env('DATABASE_PASSWORD'),
-        'HOST': env('DATABASE_HOST', default='localhost'),
-        'PORT': env('DATABASE_PORT', default=5432),
+        'NAME': ENV('DATABASE_NAME'),
+        'USER': ENV('DATABASE_USER'),
+        'PASSWORD': ENV('DATABASE_PASSWORD'),
+        'HOST': ENV('DATABASE_HOST', default='localhost'),
+        'PORT': ENV('DATABASE_PORT', default=5432),
     }
 }
 
@@ -114,6 +118,61 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+# LOG_FILE_PATH = os.path.join(BASE_DIR, ENV('LOG_FILE_FOLDER'), ENV('LOG_FILE_NAME'))
+from .server_startup import init_log_path
+LOG_FILE_PATH = init_log_path()
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            'format': '%(levelname)-5s %(filename)s:%(lineno)-12s %(message)s',
+        },
+        'file': {
+            'format': '%(asctime)-2s %(levelname)-5s %(thread)s %(name)-5s %(filename)s:%(lineno)-12s %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': LOG_FILE_PATH,
+            'when': 'midnight', # 's': Seconds ; 'M': Minutes ; 'H': Hours ; 'D': Days
+            'interval': 1,
+            'backupCount': 5,
+            'formatter': 'file',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        },
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.template': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/

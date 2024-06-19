@@ -68,22 +68,42 @@ DEBUG=True
 SECRET_KEY=your-secret-key
 ```
 
+Export environment variable `DRF_ENV_PATH` to the system.
+
+This path can let the django project get the .env file from correct path based on the environment (dev or production.
+
+```sh
+# windows
+set DRF_ENV_PATH=path_to_your_project\drf-subscription-app-tutorial\backend\.env
+
+# linux
+export DRF_ENV_PATH=path_to_your_project\drf-subscription-app-tutorial\backend\.env
+```
+
+In dev environment, .env file will anyway in the default location `BASE_DIR / '.env'`.
+
+Thus, even `DRF_ENV_PATH` is not created in the system, the django project can still run without issue.
+
 ```python
 import environ
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# export DRF_ENV_PATH to environment while deploy to production environment
+ENV_PATH = os.getenv('DRF_ENV_PATH', BASE_DIR / '.env')
+
 # Initialize environment variables
-env = environ.Env(
+ENV = environ.Env(
     DEBUG=(bool, False)
 )
 
 environ.Env.read_env(BASE_DIR / '.env')
 
 
-SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = ENV('SECRET_KEY')
 
-DEBUG = env('DEBUG')
+DEBUG = ENV('DEBUG')
 ```
 
 ## Set up Django Rest Framework in the project
