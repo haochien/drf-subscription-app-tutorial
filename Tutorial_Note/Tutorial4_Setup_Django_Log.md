@@ -13,7 +13,6 @@ drf-subscription-app-Tutorial/
 ├─ backend/
 │  ├─ logs
 │  ├─ manage.py
-├─ frontend/
 ```
 
 Then set up environment variable for the log path
@@ -122,7 +121,6 @@ drf-subscription-app-Tutorial/
 │  ├─ backend
 │  │  ├─ settings.py
 │  │  ├─ server_startup.py
-├─ frontend/
 ```
 
 ```python

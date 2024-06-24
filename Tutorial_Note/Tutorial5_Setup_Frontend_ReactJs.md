@@ -5,7 +5,7 @@
 CORS (Cross-Origin Resource Sharing) is a security feature implemented by web browsers to prevent web pages from making requests to a different domain than the one that served the web page. 
 This is to prevent potentially malicious websites from accessing sensitive information on other sites. 
 
-When working with a React frontend and a Django backend, you might encounter CORS issues because your React app (served from localhost:3000) will be making API requests to your Django server (e.g., localhost:8000).
+When working with a React frontend and a Django backend, you might encounter CORS issues because your React app (served from localhost:5173 or localhost:3000) will be making API requests to your Django server (e.g., localhost:8000).
 
 To handle CORS issues, you need to configure your Django backend to allow requests from your React frontend.
 
@@ -39,11 +39,12 @@ MIDDLEWARE = [
 ]
 
 # To allow all origins (development):
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = True
 
 # To allow specific origins (production):
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'http://localhost:5173',
     'https://your-production-domain.com',
 ]
 
@@ -86,3 +87,171 @@ CORS_ALLOWS_CREDENTIALS = True
 > * Authentication: Your API requires the user to be authenticated and uses cookies or HTTP authentication headers to maintain the session.
 >
 > * Cookies: You are relying on session cookies for authentication or other purposes
+
+
+## Create React App via Vite
+In this tutorial, we choose Vite to set up React Javascript project.
+
+
+### 1. install Node Js to have access for npm
+
+Install Node Js via [official website](https://nodejs.org) 
+
+after installation, use following command to check:
+
+```sh
+npm --version
+```
+
+### 2. Create React App
+
+There are two common ways to create React app:
+
+#### a. create-react-app
+
+``` sh
+# Create a new React project
+npx create-react-app frontend
+
+# Navigate to the project directory
+cd frontend
+
+# Start development server
+npm start
+```
+
+#### b. Vite
+
+``` sh
+# Create a new Vite project
+npm create vite@latest frontend --template react
+
+# Navigate to the project directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start the Vite development server
+npm run dev
+```
+
+> Tips:
+>
+> When choosing between create-react-app (CRA) and Vite to set up a React project, it's essential to consider your specific needs and preferences.
+>
+> **Create React App (CRA)**:
+>
+> PRO:
+>
+> * CRA is the official tool for setting up React projects and is widely used in the React community. It provides a stable and consistent environment.
+> * CRA offers a zero-configuration setup, which is perfect for those who want to get started quickly without worrying about build configurations.
+>
+> CONS:
+> * CRA's development server can be slower compared to more modern tools like Vite, especially in large projects.
+> * The build times with CRA can be slower compared to Vite, which uses modern bundling techniques.
+>
+> **Vite**:
+>
+> PRO:
+>
+> * Vite is designed for speed. It uses ESBuild for faster development builds and Rollup for production builds, resulting in significantly faster build times and hot module replacement (HMR).
+> * Vite is highly flexible and allows for easy customization without the need to eject.
+>
+> CONS:
+> * Vite’s configuration might be more complex for beginners compared to CRA’s zero-configuration approach.
+
+
+
+## Test API call
+
+### 1. Remove inessential css file
+
+delete `App.css` and remove `import './App.css'` in ``App.jsx`
+
+delete `index.css` and remove `import './index.css'` in ``main.jsx`
+
+### 2. create Interceptor
+
+#### a. create `.env` file under project folder `frontend`
+
+The variable in .env in Vite must starts with `VITE_`
+
+```
+# .env
+
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+
+#### b. create `api.js` and under `src/`
+
+```js
+// ./src/api.js
+
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+});
+
+export default api;
+
+```
+
+#### c. update `App.jsx` and under `src/`
+
+```jsx
+
+import React, { useState, useEffect } from 'react';
+import api from './api';
+
+function App() {
+  const [data, setData] = useState('');
+
+  useEffect(() => {
+    api.get('/auth/test')
+      .then(response => {
+        setData(response.data);
+      });
+  }, []);
+
+  return (
+    <>
+      <p>{JSON.stringify(data)}</p>
+    </>
+  )
+}
+
+export default App
+
+```
+
+The folder structure of your project will now be:
+
+```plaintext
+drf-subscription-app-Tutorial/
+├─ local_db/
+│  ├─ docker-compose.yml
+├─ backend/
+├─ .gitignore
+├─ frontend/
+│  ├─ public
+│  ├─ src
+│  │  ├─ api.js
+│  │  ├─ App.jsx
+│  │  ├─ main.jsx
+│  ├─ .env
+│  ├─ package.json
+│  ├─ ...
+```
+
+
+#### d. start server and check the results
+
+Before starting server in front end site, make sure your backend server is up (via `python manage.py runserver`).
+
+In addition, make sure that you have posted the data to the test api already in the previous session.
+
+Once these are all set, simply start frontend server via `npm run dev`.
+
+You will see an array of test data is listed in the UI.

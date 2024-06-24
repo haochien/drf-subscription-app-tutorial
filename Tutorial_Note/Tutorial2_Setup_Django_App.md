@@ -16,7 +16,6 @@ drf-subscription-app-Tutorial/
 │  ├─ backend/
 │  ├─ manage.py
 │  ├─ requirements.txt
-├─ frontend/
 ├─ .gitignore
 ```
 
@@ -55,7 +54,6 @@ drf-subscription-app-Tutorial/
 │  ├─ manage.py
 │  ├─ .env
 │  ├─ requirements.txt
-├─ frontend/
 ├─ .gitignore
 ```
 

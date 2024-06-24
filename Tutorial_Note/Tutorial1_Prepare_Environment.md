@@ -44,7 +44,6 @@ set up the structure of project directory as following:
 ```plaintext
 drf-subscription-app-tutorial/
 ├─ requirements.txt
-├─ frontend/
 ```
 
 Inside the `requirements.txt`, enter few basic libraries:
@@ -116,7 +115,6 @@ set up the structure of project directory as following:
 ```plaintext
 drf-subscription-app-tutorial/
 ├─ requirements.txt
-├─ frontend/
 ```
 
 Inside the `requirements.txt`, enter few basic libraries:
@@ -174,7 +172,6 @@ drf-subscription-app-Tutorial/
 │  ├─ backend/
 │  ├─ manage.py
 │  ├─ requirements.txt
-├─ frontend/
 ├─ .gitignore
 ```
 

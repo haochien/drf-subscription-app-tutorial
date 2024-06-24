@@ -49,7 +49,6 @@ drf-subscription-app-Tutorial/
 ├─ local_db/
 │  ├─ docker-compose.yml
 ├─ backend/
-├─ frontend/
 ├─ .gitignore
 ```
 
