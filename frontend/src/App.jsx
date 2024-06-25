@@ -1,20 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import api from './api';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from "react-router-dom"
+
+import Home from "./pages/Home"
+import TestPage from './pages/TestAPI'; 
 
 function App() {
-  const [data, setData] = useState('');
-
-  useEffect(() => {
-    api.get('/auth/test')
-      .then(response => {
-        setData(response.data);
-      });
-  }, []);
 
   return (
-    <>
-      <p>{JSON.stringify(data)}</p>
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/test" element={<TestPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

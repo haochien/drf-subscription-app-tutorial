@@ -88,10 +88,9 @@ CORS_ALLOWS_CREDENTIALS = True
 >
 > * Cookies: You are relying on session cookies for authentication or other purposes
 
-
 ## Create React App via Vite
-In this tutorial, we choose Vite to set up React Javascript project.
 
+In this tutorial, we choose Vite to set up React Javascript project.
 
 ### 1. install Node Js to have access for npm
 
@@ -148,6 +147,7 @@ npm run dev
 > * CRA offers a zero-configuration setup, which is perfect for those who want to get started quickly without worrying about build configurations.
 >
 > CONS:
+>
 > * CRA's development server can be slower compared to more modern tools like Vite, especially in large projects.
 > * The build times with CRA can be slower compared to Vite, which uses modern bundling techniques.
 >
@@ -159,9 +159,8 @@ npm run dev
 > * Vite is highly flexible and allows for easy customization without the need to eject.
 >
 > CONS:
+>
 > * Vite’s configuration might be more complex for beginners compared to CRA’s zero-configuration approach.
-
-
 
 ## Test API call
 
@@ -177,7 +176,7 @@ delete `index.css` and remove `import './index.css'` in ``main.jsx`
 
 The variable in .env in Vite must starts with `VITE_`
 
-```
+```env
 # .env
 
 VITE_API_BASE_URL=http://localhost:8000/api
@@ -245,7 +244,6 @@ drf-subscription-app-Tutorial/
 │  ├─ ...
 ```
 
-
 #### d. start server and check the results
 
 Before starting server in front end site, make sure your backend server is up (via `python manage.py runserver`).
@@ -255,3 +253,85 @@ In addition, make sure that you have posted the data to the test api already in 
 Once these are all set, simply start frontend server via `npm run dev`.
 
 You will see an array of test data is listed in the UI.
+
+## Start first web pages in React App
+
+### 1. Create new pages
+
+create a `pages` folder under `./src`.
+
+And then create `Home.jsx` and `TestAPI.jsx` under `./src/pages`
+
+```js
+// ./src/pages/Home.jsx
+
+import React from 'react';
+
+const TestPage = () => {
+
+  return (
+    <div>
+      <h1>Home Page</h1>
+      <p>Welecome to my website!</p>
+    </div>
+  );
+};
+
+export default TestPage;
+```
+
+```js
+// ./src/pages/TestAPI.jsx
+
+import React, { useEffect, useState } from 'react';
+import api from '../api'; 
+
+const TestPage = () => {
+  const [data, setData] = useState('');
+
+  useEffect(() => {
+    api.get('/auth/test')
+      .then(response => {
+        setData(response.data);
+      });
+  }, []);
+
+  return (
+    <div>
+      <h1>Test API Page</h1>
+      <p>My API Data:</p>
+      <p>{JSON.stringify(data)}</p>
+    </div>
+  );
+};
+
+export default TestPage;
+```
+
+### 2. Set up Router in App.jsx
+
+With router setup, we can then navigate to Home page and TestAPI page.
+
+```js
+import React from 'react';
+import { BrowserRouter, Routes, Route } from "react-router-dom"
+
+import Home from "./pages/Home"
+import TestPage from './pages/TestAPI'; 
+
+function App() {
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/test" element={<TestPage />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+export default App
+```
+
+After all set up ready, start server and navigate to `http://localhost:5173/test` and `http://localhost:5173/test` to see the results.
