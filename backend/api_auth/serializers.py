@@ -30,3 +30,9 @@ class RegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', ''),
         )
         return user
+
+
+class SocialLoginSerializer(serializers.Serializer):
+    access_token = serializers.CharField()
+    code = serializers.CharField(required=False, allow_blank=True)
+

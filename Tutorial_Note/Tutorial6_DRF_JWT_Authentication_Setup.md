@@ -21,9 +21,9 @@ For better security setup, we should black list users' refresh token when user l
 
 This part will be covered in the advance lecture.
 
-To make the tutorial not too complicated, we won't refresh the refresh token and also won't blacklist the refresh token in this chapter.
+To make the tutorial not too complicated, we will simply refresh the refresh token and won't blacklist the refresh token in this chapter.
 
-Instead, we keep the lifetime of access token and refresh token shorter to make sure the security
+We keep the lifetime of access token and refresh token shorter to make sure the security
 
 ```python
 # ./backend/settings.py
@@ -51,7 +51,7 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': False,
+    'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': False,
 }
 
