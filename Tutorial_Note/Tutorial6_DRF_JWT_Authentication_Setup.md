@@ -1,11 +1,15 @@
 
 # Simple JWT & Cunstomized User Model Setup
 
-This project uses Django simplejwt as one of the authentication method.
+This project will use Django simplejwt as the main authentication method.
+
+Besides, Google OAuth2 will also be integrated into this application as secondary authentication method.
+
+In this chapter, we will first cover User model customization and Simple JWT setup.
 
 ## Set up Simple JWT in Django
 
-### 1. install simple jwtv library
+### 1. install simple jwt library
 
 ```sh
 pip install djangorestframework-simplejwt
@@ -108,26 +112,89 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=254, unique=True)
-    first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     last_login = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
-    
+
+    # register_method can be used to differenciate Simple JWT login and Google OAuth2
+    REGISTRATION_CHOICES = [
+        ('email', 'Email'),
+        ('google', 'Google'),
+    ]
+    register_method = models.CharField(
+        max_length=10,
+        choices=REGISTRATION_CHOICES,
+        default='email'
+    )
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    # REQUIRED_FIELDS = ['first_name', 'last_name']
 
     def __str__(self):
         return self.email
 
+    class Meta:
+        db_table = 'auth_user' 
 ```
 
-#### b. update settings.py
+#### b. (Optional) Create Profile Model
+
+If you plan to build a relatively simple application where you don't anticipate needing much additional user information beyond basic details (e.g. first_name, last_name,...etc.), you can simply keep those simple information in the User model.
+
+However, if you're building a more complex application or you anticipate needing to store various additional user details (like address, gender, preferences, etc.), creating a separate Profile model is a good idea.
+
+Profile model will be included in this tutorial.
+
+```python
+# ./api_auth/model.py
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    display_name = models.CharField(max_length=30, blank=True)
+    first_name = models.CharField(max_length=30, blank=True)
+    last_name = models.CharField(max_length=30, blank=True)
+    short_intro = models.CharField(max_length=200, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    link_twitter = models.CharField(max_length=200, blank=True, null=True)
+    link_linkedin = models.CharField(max_length=200, blank=True, null=True)
+    link_youtube = models.CharField(max_length=200, blank=True, null=True)
+    link_facebook = models.CharField(max_length=200, blank=True, null=True)
+    link_website = models.CharField(max_length=200, blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email}'s profile"
+
+    class Meta:
+        db_table = 'profile' 
+
+```
+
+Then we can set up django signal to make sure that the Profile data will be created right after the new user is created.
+
+```python
+# ./api_auth/signals.py
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from .models import User, Profile
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    instance.profile.save()
+```
+
+#### c. update settings.py
 
 override `AUTH_USER_MODEL` in settings.py with the customized User model just created.
 
@@ -155,22 +222,32 @@ User = get_user_model()
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'last_login', 'date_joined')
+        fields = ('id', 'email', 'is_active', 'is_staff', 'last_login', 'date_joined', 'register_method')
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ('display_name', 'first_name', 'last_name', 'short_intro', 'bio', 
+                  'link_twitter', 'link_linkedin', 'link_youtube', 'link_facebook', 'link_website')
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    profile = ProfileSerializer()
 
     class Meta:
         model = User
         fields = ('email', 'password', 'first_name', 'last_name')
 
     def create(self, validated_data):
+        profile_data = validated_data.pop('profile', {})
         user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', ''),
+            register_method="email",
         )
+
+        Profile.objects.update_or_create(user=user, defaults=profile_data)
         return user
 ```
 
@@ -249,13 +326,11 @@ After migration, we can then start server `python manage.py runserver` and regis
 POST /api/auth/register/ HTTP/1.1
 Host: localhost:8000
 Content-Type: application/json
-Content-Length: 119
 
 {
-    "email": "test3@gmail.com",
+    "email": "test1@gmail.com",
     "password": "123456",
-    "first_name": "first3",
-    "last_name": "last3"
+    "profile": {"display_name": "tester1", "first_name": "Hao", "last_name": "Hsueh"}
 }
 ```
 
@@ -265,10 +340,9 @@ Then log in the user via POST request at endpoint `http://localhost:8000/api/aut
 POST /api/auth/token/ HTTP/1.1
 Host: localhost:8000
 Content-Type: application/json
-Content-Length: 63
 
 {
-    "email": "test3@gmail.com",
+    "email": "test1@gmail.com",
     "password": "123456"
 }
 ```
@@ -286,7 +360,6 @@ You can refresh the access token via POST request at endpoint `http://localhost:
 POST /api/auth/token/refresh/ HTTP/1.1
 Host: localhost:8000
 Content-Type: application/json
-Content-Length: 252
 
 {
     "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcyMDAyNTM0OCwiaWF0IjoxNzE5NzY2MTQ4LCJqdGkiOiJmOWZmOGZkZGM2OTg0OWUwOTYwNGQ3ZDI2YzVhY2UzYSIsInVzZXJfaWQiOjN9.yuG6IUE1zdJoHeP9DyQwkfLn17EywKM3J3KHYzclsBE"

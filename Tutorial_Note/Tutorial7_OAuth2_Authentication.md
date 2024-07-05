@@ -1,1 +1,1 @@
-pip install django-allauth
+# Google Oauth2 Setup
