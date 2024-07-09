@@ -213,3 +213,6 @@ If above steps are set up correctly, the callback function will correctly proces
 ```
 
 You can also check in the database whether the user data is successfully created in User table `auth_user` and profile table `profile`.
+
+If you would like to understand Google OAuth more, you can check the Google [official document](https://developers.google.com/identity/openid-connect/openid-connect#python)
+
