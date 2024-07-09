@@ -100,11 +100,15 @@ urlpatterns = [
 ]
 ```
 
-Once request is sent, we will be redirect to the Google login page. 
+Once request is sent, we will be redirect to the Google login page.
 
 ![image15](./Tutorial_Images/Google_OAuth/image15.png)
 
-After users finish the google login, they will be redirect to the redirect uri you provided in the request (i.e. `http://localhost:8000/api/auth/google/callback/`).
+After users finish the google login, they will be redirect to the redirect uri you provided in the request (i.e. `http://localhost:8000/api/auth/google/callback/`) with `code` attached.
+
+`localhost:8000/api/auth/google/callback/?code=4%2F0ATx3LY6o4aM1fmw4aSE9Gxw4kPFgJZ1_Mbc8xj2OFrdroVxZxS5xmxdbiJ48XyFcAzcBNw&scope=email+profile+openid+`
+
+We would need to use this code (the text between `?code=` and `&scope=`) to further fetch the user Google profile.
 
 Please note that this redirect uri must be registered in Google (see step 3 in above [Setting up Google APIs](#setting-up-google-apis))
 
@@ -112,6 +116,100 @@ Please note that this redirect uri must be registered in Google (see step 3 in a
 
 We will now create a callback endpoint in our backend, so that we can process the request from Google redirection after the user login
 
+In this endpoint, we include the `code` from previous step with our `client id` and `client secret` in the request sent to `https://oauth2.googleapis.com/token`.
+
+If there is no error, the response will contain `access token`.
+
+We will then use this `access token` to send a request to `https://www.googleapis.com/oauth2/v1/userinfo` and get the user profile data (e.g. email, name,...etc.)
+
+Once we get the user profile data, we check whether this user is in our `User` table. If not, then we create the user and his/her profile.
+
+In final, we generate an `access token` and `refresh token` via our Simple JWT mechanism for this user.
+
+The way to use and refresh JWT access token here will be exactly same as [previous tutorial](./Tutorial6_DRF_JWT_Authentication_Setup.md)
+
+The only difference is that the user need to login again via Google (instead of email login in Simple JWT case) once the refresh token we issued is expired.
+
 ```python
+# ./backend/api_auth/views.py
+
+class GoogleOAuth2CallbackView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        code = request.GET.get('code')
+        if not code:
+            return Response({'error': 'Code is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Exchange authorization code for access token
+        token_url = 'https://oauth2.googleapis.com/token'
+        data = {
+            'code': code,
+            'client_id': env('GOOGL_CLIENT_ID'),
+            'client_secret': env('GOOGL_SECRET'),
+            'redirect_uri': env('GOOGLE_OAUTH2_REDIRECT_URI'),
+            'grant_type': 'authorization_code'
+        }
+        response = requests.post(token_url, data=data)
+        token_data = response.json()
+
+        if 'error' in token_data:
+            return Response(token_data, status=status.HTTP_400_BAD_REQUEST)
+
+        access_token = token_data.get('access_token')
+        id_token = token_data.get('id_token')
+
+        # Retrieve user info
+        user_info_url = 'https://www.googleapis.com/oauth2/v1/userinfo'
+        user_info_response = requests.get(user_info_url, params={'access_token': access_token})
+        if not response.ok:
+            raise ValidationError('Failed to obtain user info from Google.')
+        
+        user_info = user_info_response.json()
+        email = user_info.get('email')
+        user_name = user_info.get('name')
+        first_name = user_info.get('given_name')
+
+        # Create or get user
+        user, created = User.objects.get_or_create(email=email)
+        user.last_login = timezone.now()
+        if created:
+            user.register_method = "google"
+            user.save()
+        
+        # Update profile
+        Profile.objects.update_or_create(
+            user=user,
+            defaults={'display_name': user_name, 'first_name': first_name}
+        )
+
+        # Generate JWT token
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+```
+
+```python
+# ./backend/api_auth/urls.py
+
+urlpatterns = [
+
+    ...
+    path('google/login/', views.GoogleLoginView.as_view(), name='google_login'),
+    path('google/callback/', views.GoogleOAuth2CallbackView.as_view(), name='google_callback'),
+]
 
 ```
+
+If above steps are set up correctly, the callback function will correctly process the google request and you will receive a set of `access token` and `refresh token` in the response:
+
+```json
+{
+    "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcyMDc2NTg4NywiaWF0IjoxNzIwNTA2Njg3LCJqdGkiOiI0M2ViMDRkNWU2OGY0MjQyODc0MDM3M2ZlNzllZWM5MiIsInVzZXJfaWQiOjF9.FgdwtMMMQ86OC76_YfrGzC3jxXgGv6K_0fTR7PTZfeg",
+    "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzIwNTA3NTg3LCJpYXQiOjE3MjA1MDY2ODcsImp0aSI6ImZiODRlNGRhYjdlZDRmZDY4ODExZWMzMjdmYmQzMzllIiwidXNlcl9pZCI6MX0.5kTwTRsGneo8Oj7U4yJ2FWR_0QM3BhcHEnz7Fzfi_JA"
+}
+```
+
+You can also check in the database whether the user data is successfully created in User table `auth_user` and profile table `profile`.
