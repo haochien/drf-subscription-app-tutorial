@@ -33,7 +33,7 @@ To use Google login, you need to first register your application in [Google Deve
     >
     > Authorised JavaScript origins:
     >
-    > For dev environment, Please input your dev local domain and port (e.g. for React Vite, you would need to enter http://localhost:5173).
+    > For dev environment, Please input your dev local domain and port (e.g. for React Vite, you would need to enter <http://localhost:5173>).
     >
     > For future production environment, you would need to add your production domain here.
     >
@@ -41,7 +41,7 @@ To use Google login, you need to first register your application in [Google Deve
     >
     > In the testing stage (this chapter), we will test on our OAuth redirect API without any frontend setup.
     >
-    > Thus, we will set up an endpoint in Django (http://localhost:8000/api/auth/google/callback) and input this as redirect URI in Google OAuth.
+    > Thus, we will set up an endpoint in Django <http://localhost:8000/api/auth/google/callback> and input this as redirect URI in Google OAuth.
     >
     > In the next chapter, we will change this part to an frontend url after the frontend login page is set up.
     >
@@ -57,7 +57,7 @@ Followings are the workflow to authenticate users by Google OAuth:
 
 ### 1. Send an Authentication Request to Google
 
-The first step is to send a GET request with the appropriate URI parameters to Google (https://accounts.google.com/o/oauth2/v2/auth).
+The first step is to send a GET request with the appropriate URI parameters to Google <https://accounts.google.com/o/oauth2/v2/auth>.
 
 You can send the request via postman or any approach. For easier testing, we could create a Google Login endpoint in our backend `http://localhost:8000/api/auth/google/login`.
 
@@ -215,4 +215,3 @@ If above steps are set up correctly, the callback function will correctly proces
 You can also check in the database whether the user data is successfully created in User table `auth_user` and profile table `profile`.
 
 If you would like to understand Google OAuth more, you can check the Google [official document](https://developers.google.com/identity/openid-connect/openid-connect#python)
-

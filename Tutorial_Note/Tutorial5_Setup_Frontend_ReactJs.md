@@ -139,6 +139,10 @@ npm run dev
 >
 > When choosing between create-react-app (CRA) and Vite to set up a React project, it's essential to consider your specific needs and preferences.
 >
+> This Tutorial will suggest to use Vite. Create React App was deprecated in early 2023 ([comment from maintainers](https://github.com/reactjs/react.dev/pull/5487#issuecomment-1409720741)). It is not recommended to use it for new projects.
+>
+> But it's still imporatant to understand the pros and cons for each of them:
+>
 > **Create React App (CRA)**:
 >
 > PRO:
@@ -161,6 +165,7 @@ npm run dev
 > CONS:
 >
 > * Vite’s configuration might be more complex for beginners compared to CRA’s zero-configuration approach.
+>
 
 ## Test API call
 
