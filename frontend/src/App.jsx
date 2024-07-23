@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 
+import '@mantine/core/styles.css';
 import { createTheme, MantineProvider } from '@mantine/core';
 
 import Home from "./pages/Home"
