@@ -1,57 +1,106 @@
 import React, { useState } from 'react';
-import { TextInput, PasswordInput, Button, Box, Alert } from '@mantine/core';
+import { useToggle, upperFirst } from '@mantine/hooks';
+import { useForm } from '@mantine/form';
+import {
+  TextInput,
+  PasswordInput,
+  Text,
+  Paper,
+  Group,
+  Button,
+  Divider,
+  Container,
+  Checkbox,
+  Anchor,
+  Stack,
+} from '@mantine/core';
+import GoogleLoginButton from './GoogleLoginButton';
 
 const AuthForm = ({ handleSubmit, isLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [error, setError] = useState('');
+  const [type, toggle] = useToggle(['login', 'register']);
+  const form = useForm({
+    initialValues: {
+      email: '',
+      name: '',
+      password: '',
+      terms: true,
+    },
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await handleSubmit({ email, password, firstName, lastName });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+    validate: {
+      email: (val) => (/^\S+@\S+$/.test(val) ? null : 'Invalid email'),
+      password: (val) => (val.length <= 6 ? 'Password should include at least 6 characters' : null),
+    },
+  });
 
   return (
-    <Box maw={300} mx="auto">
-      <form onSubmit={onSubmit}>
-        <TextInput
-          label="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <PasswordInput
-          label="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {!isLogin && (
-          <>
+    <Container size={420} my={40}>
+    <Paper radius="md" p="xl" withBorder>
+      <Text size="lg" ta="center" fw={500} mb="lg">
+        {type === 'register' ? 'Get Started' : 'Welcome Back'}
+      </Text>
+
+
+      <form onSubmit={form.onSubmit(() => {})}>
+        <Stack>
+          {type === 'register' && (
             <TextInput
-              label="First Name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              required
+              label="Name"
+              placeholder="Your name"
+              value={form.values.name}
+              onChange={(event) => form.setFieldValue('name', event.currentTarget.value)}
+              radius="md"
             />
-            <TextInput
-              label="Last Name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              required
+          )}
+
+          <TextInput
+            required
+            label="Email"
+            placeholder="hello@myemail.com"
+            value={form.values.email}
+            onChange={(event) => form.setFieldValue('email', event.currentTarget.value)}
+            error={form.errors.email && 'Invalid email'}
+            radius="md"
+          />
+
+          <PasswordInput
+            required
+            label="Password"
+            placeholder="Your password"
+            value={form.values.password}
+            onChange={(event) => form.setFieldValue('password', event.currentTarget.value)}
+            error={form.errors.password && 'Password should include at least 6 characters'}
+            radius="md"
+          />
+
+          {type === 'register' && (
+            <Checkbox
+              label="I accept terms and conditions"
+              checked={form.values.terms}
+              onChange={(event) => form.setFieldValue('terms', event.currentTarget.checked)}
             />
-          </>
-        )}
-        {error && <Alert color="red">{error}</Alert>}
-        <Button type="submit" mt="md">{isLogin ? 'Login' : 'Register'}</Button>
+          )}
+        </Stack>
+
+        <Group justify="space-between" mt="xl">
+          <Anchor component="button" type="button" c="dimmed" onClick={() => toggle()} size="xs">
+            {type === 'register'
+              ? 'Already have an account? Login'
+              : "Don't have an account? Register"}
+          </Anchor>
+          <Button type="submit" radius="xl">
+            {upperFirst(type)}
+          </Button>
+        </Group>
+
+        <Divider label="Or" labelPosition="center" my="lg" />
+
+        <Group grow mb="md" mt="md">
+          <GoogleLoginButton />
+        </Group>
+
       </form>
-    </Box>
+    </Paper>
+    </Container>
   );
 };
 
