@@ -1,6 +1,7 @@
 import React from 'react';
 import { useToggle, upperFirst, useMediaQuery } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import {
   TextInput,
   PasswordInput,
@@ -18,7 +19,7 @@ import GoogleLoginButton from './GoogleLoginButton';
 import classes from './AuthForm.module.css';
 import { register, login } from '../utils/auth';
 
-const AuthForm = ({ isLogin }) => {
+const AuthForm = ({ isLogin, onLoginSuccess }) => {
   const theme = useMantineTheme();
   const isLargeScreen = useMediaQuery(`(min-width: ${theme.breakpoints.sm})`);
 
@@ -38,23 +39,17 @@ const AuthForm = ({ isLogin }) => {
   });
 
   const handleSubmit = async (data) => {
-    if (type === 'register') {
-      console.log("Start register...")
-      try {
+    try {
+      if (type === 'register') {
         await register(data.email, data.password, { display_name: data.userName });
-        console.log("Finish register...")
-      } catch (error) {
-        console.error('Registration failed:', error);
-      }
-    } else {
-      console.log("Start login...")
-      try {
+      } else {
         await login(data.email, data.password);
-        console.log("Finish Login...")
-      } catch (error) {
-        console.error('Login failed:', error);
+        onLoginSuccess();
       }
+    } catch (error) {
+      console.log(error.response?.data?.detail || `${type === 'register' ? 'Register' :  'Login'} failed. Please try again.`)
     }
+
     
 
   };
