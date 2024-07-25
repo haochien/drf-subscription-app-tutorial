@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api'; 
 
-const TestPage = () => {
+export const TestAPI = () => {
   const [data, setData] = useState('');
 
   useEffect(() => {
@@ -20,4 +20,22 @@ const TestPage = () => {
   );
 };
 
-export default TestPage;
+
+export const TestProtectedAPI = () => {
+  const [data, setData] = useState('');
+
+  useEffect(() => {
+    api.get('/auth/test-protected')
+      .then(response => {
+        setData(response.data);
+      });
+  }, []);
+
+  return (
+    <div>
+      <h1>Test Protected API Page</h1>
+      <p>My Protected API Data:</p>
+      <p>{JSON.stringify(data)}</p>
+    </div>
+  );
+}

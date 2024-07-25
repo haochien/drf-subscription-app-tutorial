@@ -1,53 +1,81 @@
-import React, { useState } from 'react';
-import { useToggle, upperFirst } from '@mantine/hooks';
+import React from 'react';
+import { useToggle, upperFirst, useMediaQuery } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import {
   TextInput,
   PasswordInput,
-  Text,
+  Title,
   Paper,
   Group,
   Button,
   Divider,
-  Container,
   Checkbox,
   Anchor,
   Stack,
+  useMantineTheme 
 } from '@mantine/core';
 import GoogleLoginButton from './GoogleLoginButton';
+import classes from './AuthForm.module.css';
+import { register, login } from '../utils/auth';
 
-const AuthForm = ({ handleSubmit, isLogin }) => {
+const AuthForm = ({ isLogin }) => {
+  const theme = useMantineTheme();
+  const isLargeScreen = useMediaQuery(`(min-width: ${theme.breakpoints.sm})`);
+
   const [type, toggle] = useToggle(['login', 'register']);
   const form = useForm({
     initialValues: {
       email: '',
-      name: '',
+      userName: '',
       password: '',
       terms: true,
     },
 
     validate: {
       email: (val) => (/^\S+@\S+$/.test(val) ? null : 'Invalid email'),
-      password: (val) => (val.length <= 6 ? 'Password should include at least 6 characters' : null),
+      password: (val) => (val.length < 8 ? 'Password should include at least 8 characters' : null),
     },
   });
 
+  const handleSubmit = async (data) => {
+    if (type === 'register') {
+      console.log("Start register...")
+      try {
+        await register(data.email, data.password, { display_name: data.userName });
+        console.log("Finish register...")
+      } catch (error) {
+        console.error('Registration failed:', error);
+      }
+    } else {
+      console.log("Start login...")
+      try {
+        await login(data.email, data.password);
+        console.log("Finish Login...")
+      } catch (error) {
+        console.error('Login failed:', error);
+      }
+    }
+    
+
+  };
+
   return (
-    <Container size={420} my={40}>
-    <Paper radius="md" p="xl" withBorder>
-      <Text size="lg" ta="center" fw={500} mb="lg">
-        {type === 'register' ? 'Get Started' : 'Welcome Back'}
-      </Text>
+    <>
+    <Title ta="center" fw={500} mb="xl" order={1} >
+      {type === 'register' ? 'Get Started' : 'Welcome Back'}
+    </Title>
 
-
-      <form onSubmit={form.onSubmit(() => {})}>
+    <Paper className={classes.form} withBorder={isLargeScreen} >
+      <form onSubmit={form.onSubmit(handleSubmit)}>
+        
         <Stack>
           {type === 'register' && (
             <TextInput
-              label="Name"
+              required
+              label="User Name"
               placeholder="Your name"
-              value={form.values.name}
-              onChange={(event) => form.setFieldValue('name', event.currentTarget.value)}
+              value={form.values.userName}
+              onChange={(event) => form.setFieldValue('userName', event.currentTarget.value)}
               radius="md"
             />
           )}
@@ -58,7 +86,7 @@ const AuthForm = ({ handleSubmit, isLogin }) => {
             placeholder="hello@myemail.com"
             value={form.values.email}
             onChange={(event) => form.setFieldValue('email', event.currentTarget.value)}
-            error={form.errors.email && 'Invalid email'}
+            error={form.errors.email}
             radius="md"
           />
 
@@ -68,12 +96,13 @@ const AuthForm = ({ handleSubmit, isLogin }) => {
             placeholder="Your password"
             value={form.values.password}
             onChange={(event) => form.setFieldValue('password', event.currentTarget.value)}
-            error={form.errors.password && 'Password should include at least 6 characters'}
+            error={form.errors.password}
             radius="md"
           />
 
           {type === 'register' && (
             <Checkbox
+              required
               label="I accept terms and conditions"
               checked={form.values.terms}
               onChange={(event) => form.setFieldValue('terms', event.currentTarget.checked)}
@@ -88,7 +117,7 @@ const AuthForm = ({ handleSubmit, isLogin }) => {
               : "Don't have an account? Register"}
           </Anchor>
           <Button type="submit" radius="xl">
-            {upperFirst(type)}
+            {type === 'register' ? 'Register' :  'Login'}
           </Button>
         </Group>
 
@@ -100,7 +129,7 @@ const AuthForm = ({ handleSubmit, isLogin }) => {
 
       </form>
     </Paper>
-    </Container>
+    </>
   );
 };
 

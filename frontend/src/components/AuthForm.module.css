@@ -1,0 +1,16 @@
+.form {
+
+    min-height: rem(400px);
+    border-radius: var(--mantine-spacing-md);
+    padding: var(--mantine-spacing-lg);
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        max-width: 100%;
+        padding: var(--mantine-spacing-sm);
+        
+
+
+    }
+
+
+  }

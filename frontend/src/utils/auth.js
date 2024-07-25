@@ -2,6 +2,7 @@ import api from '../api';
 import { ACCESS_TOKEN, REFRESH_TOKEN } from '../constants';
 
 export const login = async (email, password) => {
+  debugger
   try {
     const response = await api.post('/auth/token/', { email, password });
     localStorage.setItem(ACCESS_TOKEN, response.data.access);
@@ -13,6 +14,7 @@ export const login = async (email, password) => {
 };
 
 export const register = async (email, password, profileData) => {
+  debugger
   try {
     const response = await api.post('/auth/register/', { email, password, profile: profileData });
     return response.data;
