@@ -4,10 +4,13 @@ import { Button } from '@mantine/core';
 const GoogleLoginButton = () => {
 
   const handleGoogleLogin = () => {
+    const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+    const redirectUri = import.meta.env.VITE_GOOGLE_OAUTH2_REDIRECT_URI;
+    const prompt = "consent"
+    const response_type = "code"
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const redirectUri = `${window.location.origin}/google/callback`;
-    const scope = 'openid email profile';
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&prompt=consent`;
+    const scope = "openid%20email%20profile"
+    const authUrl = `${googleAuthUrl}?redirect_uri=${redirectUri}&prompt=${prompt}&response_type=${response_type}&client_id=${clientId}&scope=${scope}`;
 
     window.location.href = authUrl;
   };
@@ -23,11 +26,6 @@ const GoogleLoginButton = () => {
 
   return (
     <Button leftSection={<GoogleIcon />} radius="md" variant="default" onClick={handleGoogleLogin}> Continue with Google </Button>
-    /** 
-    <Button onClick={handleGoogleLogin} variant="outline" color="red" fullWidth>
-      Login with Google
-    </Button>
-    **/
   );
 };
 

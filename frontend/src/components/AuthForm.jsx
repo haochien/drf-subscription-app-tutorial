@@ -42,6 +42,10 @@ const AuthForm = ({ isLogin, onLoginSuccess }) => {
     try {
       if (type === 'register') {
         await register(data.email, data.password, { display_name: data.userName });
+        
+        // TODO: send validation email after registering
+        toggle()
+        form.values.password = ''
       } else {
         await login(data.email, data.password);
         onLoginSuccess();

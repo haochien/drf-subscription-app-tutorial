@@ -59,7 +59,8 @@ function ProtectedRoute({ children }) {
         return <div>Check Authorization...</div>;
     }
 
-    return isAuthorized ? children : <Navigate to="/login" state={{ from: location }} replace />;
+    sessionStorage.setItem('redirectPath', location.pathname);
+    return isAuthorized ? children : <Navigate to="/login" replace />;
 }
 
 export default ProtectedRoute;

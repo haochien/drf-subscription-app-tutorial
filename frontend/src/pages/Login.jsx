@@ -1,16 +1,36 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AuthForm from '../components/AuthForm';
 import { Container } from '@mantine/core';
+import { googleLogin } from '../utils/auth';
 
 
 function Login() {
   const location = useLocation();
   const navigate = useNavigate();
-  const from = location.state?.from?.pathname || '/';
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code) {
+      handleGoogleCallback(code);
+    }
+  }, []);
+
+  const redirectAfterLogin = () => {
+    const redirectPath = sessionStorage.getItem('redirectPath') || '/';
+    sessionStorage.removeItem('redirectPath');
+    navigate(redirectPath, { replace: true });
+  };
+
+  const handleGoogleCallback = async (code) => {
+    await googleLogin(code);
+    redirectAfterLogin();
+  };
 
   const handleLoginSuccess = () => {
-    navigate(from, { replace: true });
+    redirectAfterLogin();
   };
 
   return (
