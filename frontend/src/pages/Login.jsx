@@ -6,9 +6,9 @@ import { googleLogin } from '../utils/auth';
 
 
 function Login() {
-  const location = useLocation();
   const navigate = useNavigate();
 
+  /*
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -17,6 +17,7 @@ function Login() {
       handleGoogleCallback(code);
     }
   }, []);
+  
 
   const redirectAfterLogin = () => {
     const redirectPath = sessionStorage.getItem('redirectPath') || '/';
@@ -28,6 +29,7 @@ function Login() {
     await googleLogin(code);
     redirectAfterLogin();
   };
+  */
 
   const handleLoginSuccess = () => {
     redirectAfterLogin();

@@ -10,6 +10,7 @@ import { TestAPI, TestProtectedAPI } from './pages/TestAPI';
 import TestDemo from './pages/TestDemo'; 
 import Login from './pages/Login';
 import ProtectedRoute from "./components/ProtectedRoute"
+import LoginGoogleCallback from './pages/LoginGoogleCallBack';
 
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/login/google/callback" element={<LoginGoogleCallback />} />
           <Route path="/test" element={<TestAPI />} />
           <Route path="/test-protected" element={
             <ProtectedRoute>
