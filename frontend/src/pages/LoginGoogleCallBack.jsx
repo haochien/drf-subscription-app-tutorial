@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { googleLogin } from '../utils/auth';
+import { googleLogin, redirectAfterLogin } from '../utils/auth';
 
 function LoginGoogleCallback() {
   const navigate = useNavigate();
@@ -19,14 +19,8 @@ function LoginGoogleCallback() {
 
   const handleGoogleCallback = async (code) => {
     await googleLogin(code);
-    redirectAfterLogin();
+    redirectAfterLogin(navigate);
 
-  };
-
-  const redirectAfterLogin = () => {
-    const redirectPath = sessionStorage.getItem('redirectPath') || '/';
-    sessionStorage.removeItem('redirectPath');
-    navigate(redirectPath, { replace: true });
   };
 
   return <div>Check Authorization...</div>

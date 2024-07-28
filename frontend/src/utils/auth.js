@@ -33,6 +33,13 @@ export const googleLogin = async (code) => {
   };
 
 
+export const redirectAfterLogin = (navigate) => {
+  const redirectPath = sessionStorage.getItem('redirectPath') || '/';
+  sessionStorage.removeItem('redirectPath');
+  navigate(redirectPath, { replace: true });
+};
+
+
 export const logout = () => {
   localStorage.removeItem(ACCESS_TOKEN);
   localStorage.removeItem(REFRESH_TOKEN);
