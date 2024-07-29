@@ -187,22 +187,44 @@ The variable in .env in Vite must starts with `VITE_`
 VITE_API_BASE_URL=http://localhost:8000/api
 ```
 
-#### b. create `api.js` and under `src/`
+#### b. create `constants,js` file under project folder `src/`
+
+```js
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+export const ACCESS_TOKEN = "access";
+export const REFRESH_TOKEN = "refresh"
+```
+
+#### c. create `api.js` and under `src/`
 
 ```js
 // ./src/api.js
 
 import axios from 'axios';
+import { API_BASE_URL, ACCESS_TOKEN } from './constants';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
-export default api;
+// for api calls required authentication
+api.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem(ACCESS_TOKEN);
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
 
+export default api;
 ```
 
-#### c. update `App.jsx` and under `src/`
+#### d. update `App.jsx` and under `src/`
 
 ```jsx
 
@@ -234,22 +256,20 @@ The folder structure of your project will now be:
 
 ```plaintext
 drf-subscription-app-Tutorial/
-├─ local_db/
-│  ├─ docker-compose.yml
 ├─ backend/
-├─ .gitignore
 ├─ frontend/
 │  ├─ public
 │  ├─ src
-│  │  ├─ api.js
 │  │  ├─ App.jsx
+│  │  ├─ api.js
+│  │  ├─ constant.js
 │  │  ├─ main.jsx
 │  ├─ .env
 │  ├─ package.json
-│  ├─ ...
+├─ local_db/
 ```
 
-#### d. start server and check the results
+#### e. start server and check the results
 
 Before starting server in front end site, make sure your backend server is up (via `python manage.py runserver`).
 
@@ -272,7 +292,7 @@ And then create `Home.jsx` and `TestAPI.jsx` under `./src/pages`
 
 import React from 'react';
 
-const TestPage = () => {
+const Home = () => {
 
   return (
     <div>
@@ -282,7 +302,7 @@ const TestPage = () => {
   );
 };
 
-export default TestPage;
+export default Home;
 ```
 
 ```js
@@ -291,7 +311,7 @@ export default TestPage;
 import React, { useEffect, useState } from 'react';
 import api from '../api'; 
 
-const TestPage = () => {
+export const TestAPI = () => {
   const [data, setData] = useState('');
 
   useEffect(() => {
@@ -309,8 +329,6 @@ const TestPage = () => {
     </div>
   );
 };
-
-export default TestPage;
 ```
 
 ### 2. Set up Router in App.jsx
@@ -318,11 +336,13 @@ export default TestPage;
 With router setup, we can then navigate to Home page and TestAPI page.
 
 ```js
+// ./src/App.jsx
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 
 import Home from "./pages/Home"
-import TestPage from './pages/TestAPI'; 
+import { TestAPI } from './pages/TestAPI'; 
 
 function App() {
 
@@ -339,4 +359,123 @@ function App() {
 export default App
 ```
 
-After all set up ready, start server and navigate to `http://localhost:5173/test` and `http://localhost:5173/test` to see the results.
+After all set up ready, start server via `npm run dev` and navigate to `http://localhost:5173` and `http://localhost:5173/test` to see the results.
+
+## (Optional) UI Component Library Mantine Setup
+
+To speed up frontend development, this tutorial utilizes an open source UI component library [`Mantine`](https://ui.mantine.dev/) to build the frontend.
+
+There are way more UI (e.g. MUI, Tailwind UI, Next UI, Shadcn UI, Chakra UI, Ant Design, etc.) you can choose. You can also use vanilla CSS to build your frontend.
+
+Followings are the step to set up `Mantine` in the react project. You can also review the [office document](https://mantine.dev/getting-started/)
+
+### 1. Download packages
+
+Download required packages via `npm`.
+
+In this tutorial, let's download all packages
+
+```sh
+npm install @mantine/core @mantine/hooks @mantine/nprogress @mantine/modals @mantine/spotlight @mantine/carousel embla-carousel-react @mantine/dropzone @mantine/tiptap @tabler/icons-react @tiptap/react @tiptap/extension-link @tiptap/starter-kit @mantine/code-highlight @mantine/notifications @mantine/dates dayjs @mantine/charts recharts@2 @mantine/form
+```
+
+### 2. PostCSS setup
+
+Install `PostCSS` plugins and `postcss-preset-mantine`.
+
+`PostCSS` is a tool for transforming styles with JS plugins. These plugins can lint your CSS, support variables and mixins, transpile future CSS syntax, inline images, and more.
+
+```sh
+npm install --save-dev postcss postcss-preset-mantine postcss-simple-vars
+```
+
+Create postcss.config.cjs file at the root of your application with the following content
+
+```cjs
+module.exports = {
+  plugins: {
+    'postcss-preset-mantine': {},
+    'postcss-simple-vars': {
+      variables: {
+        'mantine-breakpoint-xs': '36em',
+        'mantine-breakpoint-sm': '48em',
+        'mantine-breakpoint-md': '62em',
+        'mantine-breakpoint-lg': '75em',
+        'mantine-breakpoint-xl': '88em',
+      },
+    },
+  },
+};
+```
+
+### 3. Create theme.js under src folder
+
+Mantine theme is an object where your application's colors, fonts, spacing, border-radius and other design tokens are stored.
+
+You can customize `theme.js` to override the default styling in Mantine and have your own global style and theme.
+
+We can leave this fill temporarily empty.
+
+```js
+import { createTheme } from '@mantine/core';
+
+export const theme = createTheme({
+
+});
+```
+
+### 4. Update root component App.jsx
+
+```js
+// ./src/App.jsx
+
+// Import styles of packages that you've installed.
+// All packages except `@mantine/hooks` require styles imports
+import '@mantine/core/styles.css';
+import { MantineProvider } from '@mantine/core';
+import { theme } from './theme';
+
+import React from 'react';
+import { BrowserRouter, Routes, Route } from "react-router-dom"
+
+import Home from "./pages/Home"
+import { TestAPI } from './pages/TestAPI'; 
+
+function App() {
+  return (
+    <MantineProvider theme={theme} defaultColorScheme="dark">
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/test" element={<TestPage />} />
+        </Routes>
+      </BrowserRouter>
+    </MantineProvider>
+  )
+}
+
+export default App
+```
+
+### 5. Run server
+
+Run the server via `npm run dev` to check whether the frontend still works as expected.
+
+The folder structure in current stage of your project will be:
+
+```plaintext
+drf-subscription-app-Tutorial/
+├─ backend/
+├─ frontend/
+│  ├─ public
+│  ├─ src
+│  │  ├─ App.jsx
+│  │  ├─ api.js
+│  │  ├─ constant.js
+│  │  ├─ main.jsx
+│  │  ├─ theme.js
+│  ├─ .env
+│  ├─ postcss.config.cjs
+│  ├─ package.json
+├─ local_db/
+```

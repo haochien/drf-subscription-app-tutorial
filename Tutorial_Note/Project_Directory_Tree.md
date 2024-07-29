@@ -21,18 +21,29 @@ drf-subscription-app-Tutorial/
 │  ├─ src
 │  │  ├─ assets
 │  │  ├─ components
+│  │  │  ├─ AuthForm.jsx
+│  │  │  ├─ AuthForm.module.css
+│  │  │  ├─ GoogleLoginButton.jsx
 │  │  │  ├─ ProtectedRoute.jsx
 │  │  ├─ pages
 │  │  │  ├─ Home.jsx
 │  │  │  ├─ Login.jsx
-│  │  │  ├─ Register.jsx
+│  │  │  ├─ LoginGoogleCallBack.jsx
+│  │  │  ├─ TestAPI.jsx
+│  │  │  ├─ TestDemo.jsx
 │  │  ├─ utils
 │  │  │  ├─ auth.js
 │  │  ├─ App.jsx
 │  │  ├─ api.js
 │  │  ├─ constant.js
 │  │  ├─ main.jsx
+│  │  ├─ theme.js
 │  ├─ .env
+│  ├─ postcss.config.cjs
 │  ├─ package.json
-│  ├─ ...
+├─ local_db/
+│  ├─ docker-compose.yml
+├─ .gitignore
+├─ .vscode
+│  ├─ launch.json
 ```

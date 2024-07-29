@@ -1,4 +1,4 @@
-# Google Oauth2 Setup
+# Google Oauth2 Backend Setup
 
 Becides Simple JWT, we will also allow user to use google OAuth2 as an alternative login approach.
 
