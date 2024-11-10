@@ -38,7 +38,7 @@ INSTALLED_APPS = [
 download `django-environ`
 
 ```sh
-pip install django-environ
+pip install django-environ==0.11.2
 
 # export downloaded libraries to requirement.txt
 pip freeze > .\backend\requirements.txt

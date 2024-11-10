@@ -13,8 +13,10 @@ To handle CORS issues, you need to configure your Django backend to allow reques
 
 #### a. install django-cors-headers
 
+install django-cors-headers if you did not install it in the Tutorial 1
+
 ```sh
-pip install django-cors-headers
+pip install django-cors-headers==4.2.0
 ```
 
 #### b. settings.py configuration
@@ -297,7 +299,7 @@ const Home = () => {
   return (
     <div>
       <h1>Home Page</h1>
-      <p>Welecome to my website!</p>
+      <p>Welcome to my website!</p>
     </div>
   );
 };
@@ -334,6 +336,11 @@ export const TestAPI = () => {
 ### 2. Set up Router in App.jsx
 
 With router setup, we can then navigate to Home page and TestAPI page.
+You need to install `react-router-dom` first via the following command:
+
+```sh
+npm install react-router-dom
+```
 
 ```js
 // ./src/App.jsx

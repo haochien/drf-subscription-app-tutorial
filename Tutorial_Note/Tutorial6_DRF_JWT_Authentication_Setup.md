@@ -12,7 +12,7 @@ In this chapter, we will first cover User model customization and Simple JWT set
 ### 1. install simple jwt library
 
 ```sh
-pip install djangorestframework-simplejwt
+pip install djangorestframework-simplejwt==5.3.1
 ```
 
 ### 2. Update settings.py

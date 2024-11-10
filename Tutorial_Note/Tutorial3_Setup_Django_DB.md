@@ -107,7 +107,7 @@ For a more flexible and scalable solution, consider using a cloud provider:
 You need the psycopg2 package to connect Django to PostgreSQL.
 
 ```sh
-pip install psycopg2-binary
+pip install psycopg2-binary==2.9.9
 ```
 
 ### 2. Update `settings.py`

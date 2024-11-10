@@ -9,6 +9,8 @@ You can set up your python environment via Python + venv or directly via Anacond
 
 #### a. Download Python
 
+We use python **3.12.7** in this tutorial.
+
 download and install Python from the [official website](https://www.python.org/downloads/). Follow the installation instructions for your operating system.
 
 After downloading the Python, open Command Prompt, then try
@@ -21,17 +23,17 @@ python --V
 >
 >**1. python command cannot be found**:
 >
-> the conda command needs to be in your system's PATH. Here’s how to check and add it:
+> the python command needs to be in your system's PATH. Here’s how to check and add it:
 >
 > * Open the Start menu and search for "Environment Variables".
 > * Click on "Edit the system environment variables".
 > * In the System Properties window, click on "Environment Variables".
 > * In the Environment Variables window, under "System variables", find the Path variable, and click "Edit".
-> * Click "New" and add the path to your Anaconda installation, typically:
+> * Click "New" and add the path to your python installation, typically:
 >
 >   ```makefile
->   C:\Users\YourUsername\Python\Python311\Scripts\
->   C:\Users\YourUsername\Python\Python311\
+>   C:\Users\xxhow\AppData\Local\Programs\Python\Python312\Scripts\
+>   C:\Users\xxhow\AppData\Local\Programs\Python\Python312\
 >   ```
 >
 >   After adding pathes, close and reopen Command Prompt to retry.
@@ -52,7 +54,15 @@ Inside the `requirements.txt`, enter few basic libraries:
 Django==5.0.0
 django-cors-headers==4.2.0
 djangorestframework==3.15.0
+requests==2.32.3
 ```
+
+>Q&A:
+>
+>**1. how to check library version**:
+>
+> The available library versions can be checked from [Python Package Index](https://pypi.org/)
+>
 
 Navigate to Your Project Directory and then create a Virtual Environment.
 After virtual environment is created. Activate the Virtual Environment
@@ -123,11 +133,12 @@ Inside the `requirements.txt`, enter few basic libraries:
 Django==5.0.0
 django-cors-headers==4.2.0
 djangorestframework==3.15.0
+requests==2.32.3
 ```
 
 >Q&A:
 >
->**1. how to check library version**:
+>**1. how to check library version via conda**:
 >
 > ```sh
 > conda search Django
@@ -147,7 +158,7 @@ cd .\drf-subscription-app-tutorial
 conda create --name env python=3.11
 conda activate env
 conda install pip
-cd .\drf-subscription-app-tutorial/backend
+cd .\drf-subscription-app-tutorial
 pip install -r requirements.txt
 ```
 
