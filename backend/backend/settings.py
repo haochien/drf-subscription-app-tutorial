@@ -19,7 +19,8 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # export DRF_ENV_PATH to environment while deploy to production environment
-ENV_PATH = os.getenv('DRF_ENV_PATH', BASE_DIR / '.env')
+ENV_FILE_NAME = os.getenv('DRF_ENV_FILE_NAME', '.env')
+ENV_PATH = BASE_DIR / ENV_FILE_NAME
 
 
 # Initialize environment variables

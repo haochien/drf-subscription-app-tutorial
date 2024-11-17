@@ -66,21 +66,24 @@ DEBUG=True
 SECRET_KEY=your-secret-key
 ```
 
-Export environment variable `DRF_ENV_PATH` to the system.
+Export environment variable `DRF_ENV_FILE_NAME` to the system.
 
-This path can let the django project get the .env file from correct path based on the environment (dev or production.
+This path can let the django project get the .env file from correct path based on the environment (dev or production).
 
 ```sh
 # windows
-set DRF_ENV_PATH=path_to_your_project\drf-subscription-app-tutorial\backend\.env
+set DRF_ENV_FILE_NAME=.env
 
 # linux
-export DRF_ENV_PATH=path_to_your_project\drf-subscription-app-tutorial\backend\.env
+export DRF_ENV_FILE_NAME=.env
+
+# If you have .env.prod for production environment, then do the following in production system:
+set DRF_ENV_FILE_NAME=.env.prod
 ```
 
 In dev environment, .env file will anyway in the default location `BASE_DIR / '.env'`.
 
-Thus, even `DRF_ENV_PATH` is not created in the system, the django project can still run without issue.
+Thus, even `DRF_ENV_FILE_NAME` is not defined in the system, the django project can still run without issue.
 
 ```python
 import environ
@@ -88,8 +91,9 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# export DRF_ENV_PATH to environment while deploy to production environment
-ENV_PATH = os.getenv('DRF_ENV_PATH', BASE_DIR / '.env')
+# export DRF_ENV_FILE_NAME to environment while deploy to production environment
+ENV_FILE_NAME = os.getenv('DRF_ENV_FILE_NAME', '.env')
+ENV_PATH = BASE_DIR / ENV_FILE_NAME
 
 # Initialize environment variables
 ENV = environ.Env(

@@ -70,7 +70,7 @@ The customized `User` subclasses Django `AbstractBaseUser`, giving it the method
 
 The `UserManager` subclasses the `BaseUserManager` and overrides the methods `create_user` and `create_superuser`.
 
-You can check more details about customized User model in the following two articles 
+You can check more details about customized User model in the following two articles
 
 * [Django : Custom User Model & Allauth for OAuth](https://medium.com/@ksarthak4ever/django-custom-user-model-allauth-for-oauth-20c84888c318)
 * [Custom users using Django REST framework](https://medium.com/@yashnarsamiyev2/custom-users-using-django-rest-framework-dda29f657e95)

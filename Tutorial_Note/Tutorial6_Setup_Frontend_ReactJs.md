@@ -2,8 +2,8 @@
 
 ## Django CORS setup
 
-CORS (Cross-Origin Resource Sharing) is a security feature implemented by web browsers to prevent web pages from making requests to a different domain than the one that served the web page. 
-This is to prevent potentially malicious websites from accessing sensitive information on other sites. 
+CORS (Cross-Origin Resource Sharing) is a security feature implemented by web browsers to prevent web pages from making requests to a different domain than the one that served the web page.
+This is to prevent potentially malicious websites from accessing sensitive information on other sites.
 
 When working with a React frontend and a Django backend, you might encounter CORS issues because your React app (served from localhost:5173 or localhost:3000) will be making API requests to your Django server (e.g., localhost:8000).
 
@@ -83,7 +83,7 @@ CORS_ALLOWS_CREDENTIALS = True
 > **2. CORS_ALLOW_CREDENTIALS**:
 >
 > The `CORS_ALLOW_CREDENTIALS` setting in Django is used to determine whether cookies or HTTP authentication headers can be included in cross-origin requests. Whether or not you need to set `CORS_ALLOW_CREDENTIALS` to True depends on your application's requirements.
-> 
+>
 > You should set `CORS_ALLOW_CREDENTIALS` to True if your frontend application needs to include credentials in its requests to the backend. This is typically necessary if:
 >
 > * Authentication: Your API requires the user to be authenticated and uses cookies or HTTP authentication headers to maintain the session.
@@ -96,7 +96,7 @@ In this tutorial, we choose Vite to set up React Javascript project.
 
 ### 1. install Node Js to have access for npm
 
-Install Node Js via [official website](https://nodejs.org) 
+Install Node Js via [official website](https://nodejs.org)
 
 after installation, use following command to check:
 

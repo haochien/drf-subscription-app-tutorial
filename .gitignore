@@ -103,6 +103,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.docker
 .venv
 env/
 venv/
@@ -130,7 +131,7 @@ dmypy.json
 
 
 # User setting
-.vscode/**
+#.vscode/**
 
 
 # Node packages
