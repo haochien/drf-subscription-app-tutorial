@@ -20,14 +20,21 @@ WORKDIR /app
 #     && apt-get clean \
 #     && rm -rf /var/lib/apt/lists/*
 
-
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        netcat-traditional \
+    && rm -rf /var/lib/apt/lists/*
 
 
 # Install Python dependencies
-RUN pip install --upgrade pip
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 # RUN pip install gunicorn
+
+# Copy entrypoint script
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
 
 # Copy project
 COPY . .
@@ -41,3 +48,11 @@ COPY . .
 
 # # Run gunicorn
 # CMD ["gunicorn", "--bind", "0.0.0.0:8000", "backend.wsgi:application"]
+
+
+
+# Create necessary directories
+# RUN mkdir -p /app/logs /app/static /app/media
+
+# Run entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
