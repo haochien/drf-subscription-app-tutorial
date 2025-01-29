@@ -18,3 +18,9 @@ max_requests_jitter = 50
 accesslog = '-'
 errorlog = '-'
 loglevel = 'info'
+
+# Use async worker. Default - sync
+# worker_class = 'gevent'
+
+# Keep-alive connection timeout
+# keepalive = 65
