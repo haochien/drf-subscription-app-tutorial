@@ -3,17 +3,19 @@ version: '3.8'
 services:
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    #command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
-    ports:
-      - 8000:8000
+      - static_volume:/app/staticfiles
+      # - media_volume:/app/mediafiles
     # environment:
     #   - DRF_ENV_FILE_NAME=.env.docker
     env_file:
       - .env.docker
     depends_on:
       - db
+    expose:  # Change from ports to expose
+      - 8000
   db:
     image: postgres:15-alpine
     volumes:
@@ -22,7 +24,19 @@ services:
       - .env.docker
     ports:
       - "5432:5432" 
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/app/staticfiles
+      # - media_volume:/app/mediafiles
+    ports:
+      - "1337:80"
+    depends_on:
+      - web
+
 
 
 volumes:
   postgres_data:
+  static_volume:
+  # media_volume:

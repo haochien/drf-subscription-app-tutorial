@@ -4,16 +4,30 @@
 drf-subscription-app-Tutorial/
 ├─ backend/
 │  ├─ api_auth
+│  │  ├─ __init__.py
+│  │  ├─ apps.py
 │  │  ├─ models.py
 │  │  ├─ serializers.py
 │  │  ├─ signals.py
 │  │  ├─ urls.py
 │  │  ├─ views.py
 │  ├─ backend
+│  │  ├─ __init__.py
+│  │  ├─ asgi.py
+│  │  ├─ wsgi.py
 │  │  ├─ settings.py
 │  │  ├─ server_startup.py
 │  │  ├─ urls.py
+│  ├─ nginx
+│  │  ├─ Dockerfile
+│  │  ├─ nginx.conf
+│  ├─ .env.docker
 │  ├─ .env
+│  ├─ gunicorn.conf.py
+│  ├─ entrypoint.sh
+│  ├─ .dockerignore
+│  ├─ Dockerfile
+│  ├─ docker-compose.yml
 │  ├─ manage.py
 │  ├─ requirement.txt
 ├─ frontend/
@@ -41,6 +55,10 @@ drf-subscription-app-Tutorial/
 │  ├─ .env
 │  ├─ postcss.config.cjs
 │  ├─ package.json
+│  ├─ index.html
+│  ├─ .eslintrc.cjs
+│  ├─ package.json
+│  ├─ vite.config.js
 ├─ local_db/
 │  ├─ docker-compose.yml
 ├─ .gitignore

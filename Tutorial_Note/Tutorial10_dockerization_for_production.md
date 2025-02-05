@@ -471,7 +471,41 @@ This step copies and makes entrypoint script executable.
 
 Specifies the command to run when container starts
 
-### 5. Start server
+### 5. Update `docker-compose.yml`
+
+comment out `command: python manage.py runserver 0.0.0.0:8000`.
+
+We want to  run server by Gunicorn. With this line, it will override our Gunicorn command and run the server by unwanted runserver.
+
+```yml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    # command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    # environment:
+    #   - DRF_ENV_FILE_NAME=.env.docker
+    env_file:
+      - .env.docker
+    depends_on:
+      - db
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env.docker
+    ports:
+      - "5432:5432" 
+
+volumes:
+  postgres_data:
+```
+
+### 6. Start server
 
 The final backend folder should look like this:
 
@@ -493,3 +527,246 @@ drf-subscription-app-Tutorial/
 ```
 
 After all these changes, run cd to backend folder and run `docker-compose up --build` to start the server!
+
+## Set up Nginx
+
+### 1. prepare Nginx configuration
+
+create a new directory `/nginx` for Nginx configuration under backend folder:
+
+```plaintext
+drf-subscription-app-Tutorial/
+├─ backend/
+│  ├─ nginx/
+│  │  ├─ nginx.conf
+│  │  ├─ Dockerfile
+│  ├─ backend/
+│  ├─ Dockerfile
+│  ├─ docker-compose.yml
+│  ├─ ...
+```
+
+And create `nginx.conf` and `Dockerfile` under this folder.
+
+Update `nginx.conf`:
+
+```conf
+upstream django_backend {
+    server web:8000;  # 'web' is our Django service name in docker-compose
+}
+
+server {
+    listen 80;
+    #server_name localhost; 
+
+    # Forward other requests to Django
+    location / {
+        # Forward requests to Django backend
+        proxy_pass http://django_backend;
+
+        # Pass client's real IP address to Django
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # Pass the original host header to Django
+        proxy_set_header Host $host;
+
+        # Disable automatic redirects from Nginx
+        proxy_redirect off;
+
+        # Includes the protocol information. Help with SSL/HTTPS handling
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Maximum allowed size of client request body. Adjust based on your needs. REQUIRED if you handle file uploads
+        client_max_body_size 20M;
+    }
+
+    # Handle static files (REQUIRED if you have static files)
+    location /static/ {
+        alias /app/staticfiles/;
+    }
+
+    # Handle media files (REQUIRED only if you handle user-uploaded files)
+    # location /media/ {
+    #     alias /app/media/;
+    # }
+
+}
+
+```
+
+* `upstream django_backend`: This block defines an upstream server group named 'django_backend'. It defines where Nginx should forward requests. 'web' refers to the Django service name in docker-compose.yml
+
+* `listen 80`: Listen for incoming HTTP connections on port 80
+
+* `server_name`: In production, you'll want to uncomment and set server_name to your actual domain name(s)
+
+* `proxy_set_header Host $host;`: By default, the header of the request nginx makes to the backend includes Host: localhost. We need to pass the real Host to Django (i.e. the one received by nginx), otherwise Django cannot check if it’s in ALLOWED_HOSTS.
+
+### 2. set up Nginx Dockerfile
+
+In this step, we need to build Nginx image in the container and copy our conf file to the container.
+
+Update `Dockerfile` under `/backend/nginx`:
+
+```Dockerfile
+FROM nginx:1.25-alpine
+
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy our custom config
+COPY nginx.conf /etc/nginx/conf.d/
+```
+
+### 3. update docker-compose.yml
+
+Update `docker-compose.yml` as followings:
+
+```yml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    # command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      # - media_volume:/app/mediafiles
+    # environment:
+    #   - DRF_ENV_FILE_NAME=.env.docker
+    env_file:
+      - .env.docker
+    depends_on:
+      - db
+    expose:  # Change from ports to expose
+      - 8000
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env.docker
+    ports:
+      - "5432:5432" 
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/app/staticfiles
+      # - media_volume:/app/mediafiles
+    ports:
+      - "1337:80"
+    depends_on:
+      - web
+
+
+
+volumes:
+  postgres_data:
+  static_volume:
+  # media_volume:
+
+```
+
+* `static_volume:/app/staticfiles`:
+
+    The web (Django) service needs it to:
+    1. Write static files when collectstatic is run
+    2. Store all collected static files in one location
+    3. Persist static files between container restarts
+
+    The nginx service needs it to:
+    1. Read the static files that Django collected
+    2. Serve these files directly without hitting Django
+    3. Access the same files that Django collected
+
+    If you don't include these lines:
+
+    Without the volume in web:
+    1. Static files would be lost when container restarts
+    2. collectstatic would collect files to a container-local directory
+    3. Files wouldn't persist between deployments
+
+    Without the volume in nginx:
+    1. Nginx couldn't access the static files
+    2. All static file requests would go to Django. Significantly worse performance
+    3. Higher load on Django server
+    4. Some static files might not load at all
+
+In `nginx` part:
+
+* `build: ./nginx`: Builds image using the Dockerfile in nginx directory
+
+* `volumes`: Maps the shared static_volume to /app/staticfiles. Same path as configured in nginx.conf
+
+* `ports: - "1337:80"`: Maps container's port 80 to host's port 1337. External access comes through port 1337. Internal nginx still listens on 80
+
+* `depends_on: - web`: Ensures nginx starts after web service
+
+### 4. start server
+
+Then start the server by `docker-compose up --build`.
+
+And you will be able to test the api by `http://localhost:1337/api/auth/test/`
+
+
+## Brief summary on request flow:
+
+```plaintext
+# Dynamic request (e.g., API call)
+
+Browser (http://localhost:1337/api/auth/test/)
+   ↓
+Nginx Container (Internal port 80)
+   - Receives request on port 80 (mapped to host 1337)
+   - Matches location / in nginx.conf
+   - Forwards to upstream django_backend
+   ↓
+Gunicorn (Internal port 8000)
+   - Running in 'web' container
+   - Listening on port 8000
+   - Manages worker processes
+   ↓
+Django Application
+   - Processes the request
+   - May need database access
+   ↓
+PostgreSQL (If database access needed)
+   - Internal port 5432
+   - Accessible as 'db' in docker network
+   ↓
+Response travels back up the chain
+```
+
+```plaintext
+# Static File Request
+
+Browser (http://localhost:1337/static/admin/css/base.css)
+   ↓
+Nginx Container (Internal port 80)
+   - Receives request on port 80 (mapped to host 1337)
+   - Matches location /static/
+   - Serves directly from /app/staticfiles
+   ↓
+Response sent directly back to browser
+(Django/Gunicorn never see this request)
+```
+
+```plaintext
+# Port Mapping:
+
+External            Internal
+localhost:1337  ->  nginx:80    (Nginx container)
+                   web:8000     (Django/Gunicorn container)
+localhost:5432  ->  db:5432     (PostgreSQL container)
+
+
+# Volume Sharing:
+Static Files:
+web container       ->  static_volume  ->  nginx container
+(/app/staticfiles)                         (/app/staticfiles)
+
+Database:
+db container        ->  postgres_data
+(/var/lib/postgresql/data)
+```
