@@ -138,7 +138,7 @@ drf-subscription-app-Tutorial/
 The copy the content from .env file to .env.docker. The env.docker will look like followings:
 
 ```env
-# .env.docker
+# .env.docker.dev
 
 DEBUG=True
 SECRET_KEY=my-secret-key
@@ -173,7 +173,7 @@ There are two updates here:
 
     In the tutorial of Setup_Django_DB, we have created a docker-compose.yml to run the PostgreSQL locally.
 
-    Instead of directly exposing our DB connection information in docker-compose file, we will now bring those private information into our .env.docker.
+    Instead of directly exposing our DB connection information in docker-compose file, we will now bring those private information into our .env.docker.dev.
 
     Thus, we also need the environment variable for `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`.
 
@@ -220,7 +220,7 @@ services:
     volumes:
       - .:/app
     # environment:
-    #   - DRF_ENV_FILE_NAME=.env.docker
+    #   - DRF_ENV_FILE_NAME=.env.docker.dev
     ports:
       - "8000:8000"
     env_file:
@@ -253,7 +253,7 @@ This file cover the setup for Python and PostgreSQL.
 
 `web:`: Defines the c service (you can change `web` to whatever name you want). Name 'web' is used as hostname in Docker's internal DNS and other services can refer to it as 'web'.
 
-`db:`: Defines PostgreSQL database service. Name 'db' should match DATABASE_HOST in Django settings (you also can change `db` to whatever name you want. But, remember to also adjust your `DATABASE_HOST` in .env.docker)
+`db:`: Defines PostgreSQL database service. Name 'db' should match DATABASE_HOST in Django settings (you also can change `db` to whatever name you want. But, remember to also adjust your `DATABASE_HOST` in .env.docker.dev)
 
 `volumes: postgres_data:`: Declares named volume for PostgreSQL data.
 
@@ -315,7 +315,7 @@ It is more secure to keep all sensitive data in env file, instead of directly li
 
 With volume set up, data survives container restarts/removals
 
-`env_file: - .env.docker`: Loads environment variables from .env.docker. Since we define Django and PostgreSQL variables in one env file, here we load the same env file as `web` service
+`env_file: - .env.docker.dev`: Loads environment variables from .env.docker.dev. Since we define Django and PostgreSQL variables in one env file, here we load the same env file as `web` service
 
 `ports: - "5432:5432"`: Exposes PostgreSQL port to host.
 
@@ -339,8 +339,7 @@ __pycache__
 .Python
 env/
 venv/
-.env
-.env.docker
+.env*
 *.sqlite3
 .git
 .gitignore
@@ -410,7 +409,7 @@ You can remove all container, images, volumns from this docker-compose file by: 
 ># ENV('DATABASE_HOST'): db
 >```
 >
->If now we include `DRF_ENV_FILE_NAME` variable in docker-compose.yml and don't load the env variables from .env.docker in built stage:
+>If now we include `DRF_ENV_FILE_NAME` variable in docker-compose.yml and don't load the env variables from .env.docker.dev in built stage:
 >
 >```yml
 >  web:
@@ -421,9 +420,9 @@ You can remove all container, images, volumns from this docker-compose file by: 
 >    ports:
 >      - 8000:8000
 >    environment:
->      - DRF_ENV_FILE_NAME=.env.docker
+>      - DRF_ENV_FILE_NAME=.env.docker.dev
 >    #env_file:
->    #  - .env.docker
+>    #  - .env.docker.dev
 >    depends_on:
 >      - db
 >```
@@ -440,8 +439,8 @@ You can remove all container, images, volumns from this docker-compose file by: 
 >print(ENV('DATABASE_HOST'))
 >
 ># results:
-># ENV_FILE_NAME: .env.docker (the variable DRF_ENV_FILE_NAME is found)
-># ENV_PATH: /app/.env.docker
+># ENV_FILE_NAME: .env.docker.dev (the variable DRF_ENV_FILE_NAME is found)
+># ENV_PATH: /app/.env.docker.dev
 ># ENV('DATABASE_HOST'): db
 >```
 >
