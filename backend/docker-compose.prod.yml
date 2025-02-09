@@ -2,30 +2,34 @@ version: '3.8'
 
 services:
   web:
-    build: .
-    #command: python manage.py runserver 0.0.0.0:8000
+    container_name: subs_app_prod_web
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: subs_app_prod_web:latest
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
       # - media_volume:/app/mediafiles
-    # environment:
-    #   - DRF_ENV_FILE_NAME=.env.docker
     env_file:
-      - .env.docker
+      - .env.docker.prod
     depends_on:
       - db
     expose:  # Change from ports to expose
       - 8000
   db:
+    container_name: subs_app_prod_db
     image: postgres:15-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - .env.docker
+      - .env.docker.prod
     ports:
       - "5432:5432" 
   nginx:
+    container_name: subs_app_prod_nginx
     build: ./nginx
+    image: subs_app_prod_nginx:latest
     volumes:
       - static_volume:/app/staticfiles
       # - media_volume:/app/mediafiles
@@ -38,5 +42,7 @@ services:
 
 volumes:
   postgres_data:
+    name: subs_app_prod_postgres_data
   static_volume:
+    name: subs_app_prod_static_files
   # media_volume:

@@ -1,4 +1,4 @@
-# Containerization
+# Containerization (for dev environment)
 
 In the previous tutorial, we have covered how to set up and run django in the local environment.
 
@@ -8,7 +8,7 @@ Putting all the dependency and setup in a container would be then a good solutio
 
 In this tutorial, we will create docker files and include all those set up in the container and run in a virtual machine.
 
-This tutorial will cover the dockerization of backend part and database part.
+This tutorial will cover the dockerization of backend part and database part for development environment (in the later chapter, we will cover the setup for production environment).
 
 ## Prepare Docker files
 
@@ -20,7 +20,7 @@ Create a Dockerfile in the backend directory.
 drf-subscription-app-Tutorial/
 ├─ backend/
 │  ├─ backend/
-│  ├─ Dockerfile
+│  ├─ Dockerfile.dev
 │  ├─ manage.py
 │  ├─ requirements.txt
 │  ├─ .env
@@ -39,9 +39,9 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 # Install Python dependencies
-RUN pip install --upgrade pip
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy project to virtual machine working directory
 COPY . .
@@ -65,11 +65,11 @@ Creates and sets the working directory in the container. All subsequent commands
 
 `WORKDIR /app` would be similar to running `mkdir /app` && `cd /app`
 
-#### d. Install Python dependencies
-
-`pip install --upgrade pip`: Updates pip to latest version. Ensures compatibility and security updates.
+#### d. Install Python dependencie
 
 `COPY requirements.txt .`: copy requirements.txt from current location /backend to the working directory in the container (i.e. /app)
+
+`pip install --upgrade pip`: Updates pip to latest version. Ensures compatibility and security updates.
 
 `pip install --no-cache-dir -r requirements.txt`: Installs Python packages listed in requirements.txt.
 
@@ -120,7 +120,7 @@ In the second step, we need to prepare another environment variable files for Do
 
 The content of the new env file will be very similar to what we have created in `.env`. Only a few lines will be updated to match the later docker setup.
 
-Create a .env.docker in the backend directory.
+Create a `.env.docker.dev` in the backend directory.
 
 ```plaintext
 drf-subscription-app-Tutorial/
@@ -131,7 +131,7 @@ drf-subscription-app-Tutorial/
 │  ├─ manage.py
 │  ├─ requirements.txt
 │  ├─ .env
-│  ├─ .env.docker
+│  ├─ .env.docker.dev
 ├─ .gitignore
 ```
 
@@ -187,17 +187,18 @@ There are two updates here:
 
 ### 3. create a docker-compose.yml
 
-Create a docker-compose.yml in the backend directory.
+Create a `docker-compose.dev.yml` in the backend directory.
 
 ```plaintext
 drf-subscription-app-Tutorial/
 ├─ backend/
 │  ├─ backend/
 │  ├─ Dockerfile
-│  ├─ docker-compose.yml
+│  ├─ docker-compose.dev.yml
 │  ├─ manage.py
 │  ├─ requirements.txt
 │  ├─ .env
+│  ├─ .env.docker.dev
 ├─ .gitignore
 ```
 
@@ -206,28 +207,40 @@ version: '3.8'
 
 services:
   web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    container_name: subs_app_dev_web
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: subs_app_dev_web:latest
+    command: >
+      bash -c "
+        python manage.py migrate &&
+        python manage.py runserver 0.0.0.0:8000
+      "
     volumes:
       - .:/app
+    # environment:
+    #   - DRF_ENV_FILE_NAME=.env.docker
     ports:
-      - 8000:8000
+      - "8000:8000"
     env_file:
-      - .env.docker
+      - .env.docker.dev
     depends_on:
       - db
   db:
+    container_name: subs_app_dev_db
     image: postgres:15-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - .env.docker
+      - .env.docker.dev
     ports:
       - "5432:5432" 
 
-
 volumes:
   postgres_data:
+    name: subs_app_dev_postgres_data
+
 ```
 
 This file cover the setup for Python and PostgreSQL.
@@ -256,9 +269,17 @@ This file cover the setup for Python and PostgreSQL.
 
 #### b. Django web application part - `web`
 
-`build: .`: Tells Docker to build image from Dockerfile. `.` means Dockerfile is in current directory (i.e. using the Dockerfile we created in the previous step)
+`container_name: subs_app_dev_web`: here we define the container name after it is created
 
-`command: python manage.py runserver 0.0.0.0:8000`: Command to run when container starts. `0.0.0.0` means listening on all network interfaces and `:8000` is the port Django runs on.
+`build:`: Tells Docker to build image from Dockerfile. `context: .` means Dockerfile is in current directory . `dockerfile: Dockerfile.dev` defined the file name of the Dockerfile.
+
+`image: subs_app_dev_web:latest`: here we defined the image name after it is built
+
+`command: > bash -c`: Command to run when container starts. We will run command in bash. 
+
+`python manage.py migrate`: this will migrate django models to your DB
+
+`python manage.py runserver 0.0.0.0:8000`: this is the command to start the dev server. `0.0.0.0` means listening on all network interfaces and `:8000` is the port Django runs on.
 
 This setup is just for development server only (not for production).
 
@@ -280,7 +301,7 @@ This will allow us to access Django app from browser.
 
 In case there is any port conflict (e.g. you have run another Django app on your local machine at port 8000), you can change the left side port number (first 8000) to another number
 
-`env_file: - .env.docker`: Loads environment variables from .env.docker, and variables will be available to the Django application
+`env_file: - .env.docker.dev`: Loads environment variables from .env.docker.dev, and variables will be available to the Django application
 
 It is more secure to keep all sensitive data in env file, instead of directly listing the required variables in `environment:` section.
 
@@ -330,6 +351,9 @@ static/
 ```
 
 In our set up, we properly excluded the env files to be builded in the image. This will keep the sensitive data safe.
+
+In final, you can start dev server by: `docker-compose -f docker-compose.dev.yml up --build`.
+You can remove all container, images, volumns from this docker-compose file by: `docker-compose -f docker-compose.dev.yml down -v --rmi all`
 
 >Hint:
 >

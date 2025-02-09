@@ -21,13 +21,16 @@ drf-subscription-app-Tutorial/
 │  ├─ nginx
 │  │  ├─ Dockerfile
 │  │  ├─ nginx.conf
-│  ├─ .env.docker
+│  ├─ .env.docker.dev
+│  ├─ .env.docker.prod
 │  ├─ .env
 │  ├─ gunicorn.conf.py
 │  ├─ entrypoint.sh
 │  ├─ .dockerignore
-│  ├─ Dockerfile
-│  ├─ docker-compose.yml
+│  ├─ Dockerfile.dev
+│  ├─ Dockerfile.prod
+│  ├─ docker-compose.dev.yml
+│  ├─ docker-compose.prod.yml
 │  ├─ manage.py
 │  ├─ requirement.txt
 ├─ frontend/

@@ -372,9 +372,9 @@ This will start the production web server
 
 `-c gunicorn.conf.py`: Configuration file path
 
-### 4. Update `Dockerfile`
+### 4. Create `Dockerfile.prod`
 
-We need to adjust Dockerfile to able to run server by Gunicorn.
+We need to copy Dockerfile.env and enhance it to able to run server by Gunicorn.
 
 ``` dockerfile
 # Use Python 3.12 slim image
@@ -471,7 +471,13 @@ This step copies and makes entrypoint script executable.
 
 Specifies the command to run when container starts
 
-### 5. Update `docker-compose.yml`
+### 5. Create `.env.docker.prod`
+
+Copy `.env.docker.dev` and rename it to `.env.docker.prod`.
+
+We will keep the content the same at this moment. But you can change the content based on your deployment requirement (e.g. `DEBUG=False` when you are ready for PROD deployment)
+
+### 6. Update `docker-compose.yml`
 
 comment out `command: python manage.py runserver 0.0.0.0:8000`.
 
@@ -482,14 +488,16 @@ version: '3.8'
 
 services:
   web:
-    build: .
+    container_name: subs_app_prod_web
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: subs_app_prod_web:latest
     # command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
-    # environment:
-    #   - DRF_ENV_FILE_NAME=.env.docker
     env_file:
-      - .env.docker
+      - .env.docker.prod
     depends_on:
       - db
   db:
@@ -497,15 +505,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - .env.docker
+      - .env.docker.prod
     ports:
       - "5432:5432" 
 
 volumes:
   postgres_data:
+    name: subs_app_prod_postgres_data
 ```
 
-### 6. Start server
+### 7. Start server
 
 The final backend folder should look like this:
 
@@ -515,18 +524,22 @@ drf-subscription-app-Tutorial/
 │  ├─ api_auth/
 │  ├─ backend/
 │  ├─ .dockerignore
-│  ├─ Dockerfile
-│  ├─ docker-compose.yml
+│  ├─ Dockerfile.dev
+│  ├─ Dockerfile.prod
+│  ├─ docker-compose.dev.yml
+│  ├─ docker-compose.prod.yml
 │  ├─ manage.py
 │  ├─ requirements.txt
-│  ├─ .env.docker
+│  ├─ .env.docker.dev
+│  ├─ .env.docker.prod
 │  ├─ gunicorn.conf.py
 │  ├─ entrypoint.sh
 ├─ frontend
 ├─ .gitignore
 ```
 
-After all these changes, run cd to backend folder and run `docker-compose up --build` to start the server!
+After all these changes, run cd to backend folder and run `docker-compose -f docker-compose.prod.yml up --build` to start the server!
+You can remove all container, images, volumns from this docker-compose file by: `docker-compose -f docker-compose.prod.yml down -v --rmi all`
 
 ## Set up Nginx
 
@@ -541,8 +554,8 @@ drf-subscription-app-Tutorial/
 │  │  ├─ nginx.conf
 │  │  ├─ Dockerfile
 │  ├─ backend/
-│  ├─ Dockerfile
-│  ├─ docker-compose.yml
+│  ├─ Dockerfile.prod
+│  ├─ docker-compose.prod.yml
 │  ├─ ...
 ```
 
@@ -618,39 +631,43 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/
 ```
 
-### 3. update docker-compose.yml
+### 3. update docker-compose.prod.yml
 
-Update `docker-compose.yml` as followings:
+Update `docker-compose.prod.yml` as followings:
 
 ```yml
 version: '3.8'
 
 services:
   web:
-    build: .
-    # command: python manage.py runserver 0.0.0.0:8000
+    container_name: subs_app_prod_web
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: subs_app_prod_web:latest
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
       # - media_volume:/app/mediafiles
-    # environment:
-    #   - DRF_ENV_FILE_NAME=.env.docker
     env_file:
-      - .env.docker
+      - .env.docker.prod
     depends_on:
       - db
     expose:  # Change from ports to expose
       - 8000
   db:
+    container_name: subs_app_prod_db
     image: postgres:15-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - .env.docker
+      - .env.docker.prod
     ports:
       - "5432:5432" 
   nginx:
+    container_name: subs_app_prod_nginx
     build: ./nginx
+    image: subs_app_prod_nginx:latest
     volumes:
       - static_volume:/app/staticfiles
       # - media_volume:/app/mediafiles
@@ -659,11 +676,11 @@ services:
     depends_on:
       - web
 
-
-
 volumes:
   postgres_data:
+    name: subs_app_prod_postgres_data
   static_volume:
+    name: subs_app_prod_static_files
   # media_volume:
 
 ```
@@ -693,6 +710,18 @@ volumes:
     3. Higher load on Django server
     4. Some static files might not load at all
 
+In `web` part:
+
+why we use `ports: -"8000:8000"` in `docker-compose.dev.yml`, but use `expose: -8000` in `docker-compose.prod.yml`?
+
+`ports` makes the port accessible from outside Docker (your local machine or internet).
+
+And `expose` only exposes ports between containers in the same Docker network. It does NOT make ports accessible from outside Docker.
+
+We need ports in dev because we need to access Django directly via localhost:8000 (No reverse proxy needed (i.e. Nginx)).
+
+In production, since all traffic goes through Nginx reverse proxy. Django should not be directly accessible from internet. Nginx handles the public port mapping
+
 In `nginx` part:
 
 * `build: ./nginx`: Builds image using the Dockerfile in nginx directory
@@ -705,12 +734,11 @@ In `nginx` part:
 
 ### 4. start server
 
-Then start the server by `docker-compose up --build`.
+Then start the server by `docker-compose -f docker-compose.prod.yml up --build`.
 
 And you will be able to test the api by `http://localhost:1337/api/auth/test/`
 
-
-## Brief summary on request flow:
+## Brief summary on request flow
 
 ```plaintext
 # Dynamic request (e.g., API call)
