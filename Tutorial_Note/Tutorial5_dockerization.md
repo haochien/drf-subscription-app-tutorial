@@ -135,7 +135,7 @@ drf-subscription-app-Tutorial/
 ├─ .gitignore
 ```
 
-The copy the content from .env file to .env.docker. The env.docker will look like followings:
+The copy the content from .env file to .env.docker.dev. The env.docker will look like followings:
 
 ```env
 # .env.docker.dev
@@ -378,7 +378,7 @@ You can remove all container, images, volumns from this docker-compose file by: 
 >
 >However, in Docker container, we don't want to copy env file into image due to security reason.
 >
->We directly define `.env.docker` in `env_file`, so that all our environment variables have been loaded while container set up.
+>We directly define `.env.docker.dev` in `env_file`, so that all our environment variables have been loaded while container set up.
 >
 >Environment variables have a specific loading order/precedence (from highest to lowest priority):
 >
@@ -427,7 +427,7 @@ You can remove all container, images, volumns from this docker-compose file by: 
 >      - db
 >```
 >
->Also, we need to remove .env.docker from .dockerignore, so that .env.docker can be copied into container for later django-environ to read.
+>Also, we need to remove .env.docker.dev from .dockerignore, so that .env.docker.dev can be copied into container for later django-environ to read.
 >
 >In this case, if we run the same test again, you will see the result as followings:
 >
