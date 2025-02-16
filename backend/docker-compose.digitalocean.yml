@@ -16,7 +16,9 @@ services:
       - 8000
   nginx:
     container_name: subs_app_prod_nginx
-    build: ./nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.nginx.digitalocean
     image: subs_app_prod_nginx:latest
     volumes:
       - static_volume:/app/staticfiles
