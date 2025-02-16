@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  web:
+    container_name: subs_app_prod_web
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: subs_app_prod_web:latest
+    volumes:
+      - static_volume:/app/staticfiles
+      - logs_volume:/app/logs
+    env_file:
+      - .env.docker.digitalocean
+    expose:
+      - 8000
+  nginx:
+    container_name: subs_app_prod_nginx
+    build: ./nginx
+    image: subs_app_prod_nginx:latest
+    volumes:
+      - static_volume:/app/staticfiles
+      - logs_volume:/app/logs
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+
+
+
+volumes:
+  static_volume:
+    name: subs_app_prod_static_files
+  logs_volume:
+    name: subs_app_prod_logs
