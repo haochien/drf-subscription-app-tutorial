@@ -22,10 +22,14 @@ RUN pip install --upgrade pip \
 
 # Copy entrypoint script
 COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Copy project
 COPY . .
+
+# Final permission check for entrypoint
+RUN ls -la /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
 
 # Run entrypoint script
 ENTRYPOINT ["/app/entrypoint.sh"]

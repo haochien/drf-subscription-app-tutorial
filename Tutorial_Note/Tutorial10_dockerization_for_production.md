@@ -101,6 +101,38 @@ Internet Request
 Django Application
 ```
 
+## Make Django ready for production
+
+### 1. update `setting.py`
+
+Make sure following variables are not hard coded but based on environment file.
+
+We will input proper value in the production env files for different deployment environment.
+
+```python
+# setting.py
+
+SECRET_KEY = ENV('SECRET_KEY')
+
+DEBUG = ENV('DEBUG')
+
+ALLOWED_HOSTS = ENV('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': ENV('DATABASE_NAME'),
+        'USER': ENV('DATABASE_USER'),
+        'PASSWORD': ENV('DATABASE_PASSWORD'),
+        'HOST': ENV('DATABASE_HOST', default='localhost'),
+        'PORT': ENV('DATABASE_PORT', default=5432),
+    }
+}
+
+CORS_ALLOWED_ORIGINS = ENV('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://localhost:5173').split(',')
+```
+
 ## Set up Gunicorn
 
 ### 0. install gunicorn library to python environment
@@ -476,6 +508,17 @@ Specifies the command to run when container starts
 Copy `.env.docker.dev` and rename it to `.env.docker.prod`.
 
 We will keep the content the same at this moment. But you can change the content based on your deployment requirement (e.g. `DEBUG=False` when you are ready for PROD deployment)
+
+There are two additional keys need to be provided in this env file:
+
+```plantext
+# existed
+DEBUG=True
+SECRET_KEY=your-secret-key
+# new
+ALLOWED_HOSTS=localhost,127.0.0.1,.your-backend-domain.com
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,https://your-frontend-domain.com
+```
 
 ### 6. Update `docker-compose.yml`
 

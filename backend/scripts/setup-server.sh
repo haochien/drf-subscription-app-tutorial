@@ -10,7 +10,6 @@ sudo apt-get install -y \
     ca-certificates \
     curl \
     software-properties-common \
-    nginx \
     certbot \
     python3-certbot-nginx
 
@@ -25,15 +24,8 @@ echo \
   $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Update apt package index
-sudo apt-get update
-
 # Install Docker packages
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Create directories
-sudo mkdir -p /var/www/backendtest.haodevelop.com
-sudo mkdir -p /var/log/gunicorn
 
 # Start and enable Docker service
 sudo systemctl start docker
