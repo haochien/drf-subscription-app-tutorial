@@ -201,6 +201,10 @@ sudo systemctl enable docker
 # Verify installation
 docker --version
 docker compose version
+
+# Stop and disable nginx (from python3-certbot-nginx installation)
+sudo systemctl stop nginx
+sudo systemctl disable nginx
 ```
 
 1. Install required packages
@@ -237,6 +241,14 @@ docker compose version
       Only required if you're using both Nginx and Certbot. sCould be removed if not using Nginx or different SSL solution
 
     > We will install nginx via Docker. No need to install in this stage.
+  
+2. Stop Nginx
+
+  Nginx will be installed as a dependency from `python3-certbot-nginx`.
+
+  Since we run Nginx from our container, this Nginx in Droplet will cause port 80 conflict with our Nginx container. (See more details in Q&A part below)
+
+  Thus we need to disable Nginx right after the download
 
 ### 2. `deploy.sh`
 
@@ -251,19 +263,13 @@ This script will make the files under our project up-to-date and automatically s
 # Pull latest changes
 git pull origin main
 
-# make sure entrypoint.sh has execution permission after git pull
-# chmod +x entrypoint.sh
-# Verify permissions
-# ls -l entrypoint.sh
-# Should show something like: -rwxr-xr-x
-
 # Build and deploy
 docker compose -f docker-compose.digitalocean.yml down
 docker compose -f docker-compose.digitalocean.yml build
 docker compose -f docker-compose.digitalocean.yml up -d
 
 # Check logs
-docker compose -f docker-compose.prod.yml logs
+docker compose -f docker-compose.digitalocean.yml logs
 ```
 
 ## Set up resources in DO Droplet
@@ -284,23 +290,68 @@ chmod +x scripts/setup-server.sh
 
 ```
 
-After you execute `setup-server.sh` script, you might received kernel updates during the apt-get update and apt-get upgrade commands in the setup script.
+After you execute `setup-server.sh` script, you might receive several update message from the system (from `apt-get update` and `apt-get upgrade` commands). Here we listed some examples:
 
-It's part of Ubuntu's standard system update process.
+* **kernel update message**:
 
-![image11](./Tutorial_Images/DigitalOcean/image11.png)
+  It's part of Ubuntu's standard system update process.
 
-Simply click 'Ok' in the dialog to continue. After setup is complete, reboot your Droplet
+  ![image11](./Tutorial_Images/DigitalOcean/image11.png)
 
-```bash
-sudo reboot
+  Simply click 'Ok' in the dialog to continue. After setup is complete, reboot your Droplet if the system does not reboot automatically.
 
-# Wait about 30-60 seconds, then reconnect via SSH
-ssh root@your-droplet-ip
+  ```bash
+  sudo reboot
 
-# After reboot, verify the update by checking new kernel version:
-uname -r
-```
+  # Wait about 30-60 seconds, then reconnect via SSH
+  ssh root@your-droplet-ip
+
+  # After reboot, verify the update by checking new kernel version:
+  uname -r
+  ```
+
+* **configuring openssh-servermessage message**:
+
+  ![image12](./Tutorial_Images/DigitalOcean/image12.png)
+
+  This message appears during the system update process (from `apt-get upgrade`) because there's a configuration file change for the OpenSSH server (A new version of openssh-server is available).
+
+  There are two main options in this message window:
+
+  * Install the package maintainer's version:
+
+    * Overwrites your current SSH configuration with the new version
+    * Good for fresh installations
+    * Could lose custom configurations if you had any
+
+  * Keep the local version currently installed (Recommended in our case):
+
+    * Keeps your current SSH configuration
+    * Safer option for a running server
+  
+  Simply use arrow keys to navigate and press Enter to confirm.
+
+  This is safe because you just created the Droplet and haven't made custom SSH configurations.
+
+* **daemons using outdated libraries message**:
+
+  ![image13](./Tutorial_Images/DigitalOcean/image13.png)
+
+  This message appears during the system upgrade process (`apt-get upgrade` installed new library versions) because some system services are using libraries that have just been updated.
+  
+  The system needs to restart these services to use the new versions. (Doesn't require a full system reboot).
+
+  It will ensures all services use the latest library versions and improves security and stability
+
+  The services shown in the list are system services like:
+  * cron.service (task scheduler)
+  * dbus.service (system message bus)
+  * networkd-dispatcher.service (network management)
+  * systemd services (system management)
+  * polkit.service (system authorization)
+
+  You can select all services using the space bar and press enter to restart all listed services.
+
 
 ### 2. Copy env file from local pc to server
 
@@ -456,4 +507,111 @@ docker exec -it subs_app_prod_nginx bash
 # Check Nginx logs
 cat /var/log/nginx/access.log
 cat /var/log/nginx/error.log
+```
+
+### how to reset Droplet and DB
+
+While practicing, you might want to rest your Droplet and DB to its original status and rerun all your scripts.
+
+* Rebuild Droplet:
+
+  Under the "Destroy" section in Droplet console, you can see the "Rebuild Droplet" option.
+
+  Simply select the original image (in our case: Ubuntu 22.04 (LTS) x64) and then click "Rebuild" button.
+
+* Reset Database:
+
+  Login to your database and execute following queries:
+
+  ```sql
+  -- Drop all tables
+  DROP SCHEMA public CASCADE;
+  CREATE SCHEMA public;
+  ```
+
+After rebuilding Droplet and re-login by `ssh root@your-droplet-ip`, You will encounter a host key validation error:
+
+```plaintext
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+Someone could be eavesdropping on you right now (man-in-the-middle attack)!
+It is also possible that a host key has just been changed.
+The fingerprint for the ED25519 key sent by the remote host is
+SHA256:VW5J2RBMumf4SUGFoq3FEsK+0hhhrhdP9Lz2zyt4Dnl/w.
+Please contact your system administrator.
+Add correct host key in /c/Users/your-account/.ssh/known_hosts to get rid of this message.
+Offending ECDSA key in /c/Users/your-account/.ssh/known_hosts:6
+Host key for 44.444.444.44 has changed and you have requested strict checking.
+Host key verification failed.
+```
+
+Let's first understand what happens during normal SSH connections:
+
+* Client keys (on your computer): Used for your authentication
+* Host keys (on the Droplet): Used for server authentication
+* Known hosts file (~/.ssh/known_hosts): Stores trusted server fingerprints
+
+Why This Happens:
+
+Initial SSH Connection:
+
+1. You connect to Droplet first time
+2. Droplet sends its host key (unique fingerprint)
+3. You accept it (type 'yes')
+4. Key is stored in ~/.ssh/known_hosts
+5. Future connections verify against this stored key
+
+After Rebuild:
+
+1. Droplet is completely reset
+2. New OS installation generates new host keys
+3. When you connect, Droplet sends new host key
+4. SSH client checks ~/.ssh/known_hosts
+5. Finds mismatch (old key ≠ new key)
+6. Raises security warning
+
+Solution:
+
+Run the following command on your local terminal:
+
+```bash
+ssh-keygen -R your-droplet-ip
+
+
+# See current known hosts entries
+cat ~/.ssh/known_hosts
+# See backup of old entries
+cat ~/.ssh/known_hosts.old
+
+```
+
+This command:
+
+1. Opens ~/.ssh/known_hosts file
+2. Finds all entries matching your Droplet's IP
+3. Removes these entries
+4. Saves backup in ~/.ssh/known_hosts.old
+5. Next connection will treat server as new
+
+Summary:
+
+```plaintext
+1. Initial Setup:
+   - Droplet created with IP 44.444.444.44
+   - Generates host keys in /etc/ssh/
+   - You connect and accept key
+   - Key stored in known_hosts
+
+2. After Rebuild:
+   - Same IP, but new host keys
+   - SSH client detects key mismatch
+   - Shows warning
+
+3. Fix Process:
+   - Remove old key (ssh-keygen -R)
+   - Connect again
+   - Accept new key
+   - New key stored in known_hosts
 ```

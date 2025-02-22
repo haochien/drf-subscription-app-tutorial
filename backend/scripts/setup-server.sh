@@ -34,3 +34,7 @@ sudo systemctl enable docker
 # Verify installation
 docker --version
 docker compose version
+
+# Stop and disable nginx (from python3-certbot-nginx installation)
+sudo systemctl stop nginx
+sudo systemctl disable nginx
