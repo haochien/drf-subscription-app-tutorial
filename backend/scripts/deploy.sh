@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Change to the backend directory first
+cd "$(dirname "$0")/.." || exit
+
+# Pull latest changes (from project root)
+cd .. && git pull origin main && cd backend
+
 # Pull latest changes
 git pull origin main
 

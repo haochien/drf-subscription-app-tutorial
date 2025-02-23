@@ -136,3 +136,6 @@ dmypy.json
 # Node packages
 .node
 node_modules/
+
+# certbot relevant directory
+/data/certbot/
