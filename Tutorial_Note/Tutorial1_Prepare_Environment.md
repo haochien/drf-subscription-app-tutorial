@@ -5,7 +5,7 @@ You can set up your python environment via Python + venv or directly via Anacond
 
 ## Install Python and set up virtual environment
 
-### 1. Use WinPython + Venv
+### 1. Use WinPython + Venv + Pip
 
 #### a. Download Python
 
@@ -45,41 +45,79 @@ set up the structure of project directory as following:
 
 ```plaintext
 drf-subscription-app-tutorial/
-├─ requirements.txt
+├─ app_backend
 ```
-
-Inside the `requirements.txt`, enter few basic libraries:
-
-```plaintext
-Django==5.0.0
-django-cors-headers==4.2.0
-djangorestframework==3.15.0
-requests==2.32.3
-```
-
->Q&A:
->
->**1. how to check library version**:
->
-> The available library versions can be checked from [Python Package Index](https://pypi.org/)
->
 
 Navigate to Your Project Directory and then create a Virtual Environment.
 After virtual environment is created. Activate the Virtual Environment
 
 ```sh
-cd .\drf-subscription-app-tutorial
+cd .\drf-subscription-app-tutorial\app_backend
 python -m venv env
 .\env\Scripts\activate
 ```
 
+#### c. Set up Djnago project and start the server
+
+create django package
+
+```sh
+pip install django==5.0.0
+django-admin backend backend .
+python manage.py migrate
+python manage.py runserver
+```
+
+You can now see the Django server up and running at `http://localhost:8000/`
+
+#### d. prepare basic libraries
+
+In the next step, we need to prepare essential libraries for our Django project.
+
+Create a `requirements.txt` under `app_backend` with following contents:
+
+```plaintext
+django-cors-headers==4.2.0
+djangorestframework==3.15.0
+requests==2.32.3
+```
+
+> **how to check library version**:
+>
+> The available library versions can be checked from [Python Package Index](https://pypi.org/)
+
 Then install basic libraries from requirements.txt
 
 ```sh
-cd .\backend
 pip install -r requirements.txt
-pip list  # check installation
+
+ # check installation
+pip list
 ```
+
+The project structure after `django-admin startproject backend .` will be:
+
+```plaintext
+drf-subscription-app-tutorial/
+├─ app_backend/
+│  ├─ backend/
+│  ├─ manage.py
+│  ├─ requirements.txt
+```
+
+> For Unix-based systems, You can achieve above by:
+>
+> ```bash
+> mkdir drf-subscription-app-tutorial && cd drf-subscription-app-tutorial
+> mkdir app_backend && cd app_backend
+> python3.12 -m venv env
+> source env/bin/activate
+> 
+> pip install django==5.0.0
+> django-admin backend backend .
+> python manage.py migrate
+> python manage.py runserver
+> ```
 
 ### 2. Use Anaconda
 
@@ -118,75 +156,84 @@ conda --version
 > Please check the top solution in this [article](https://stackoverflow.com/questions/54828713/working-with-anaconda-in-visual-studio-code)
 >
 
-### 2. Set up virtual environment by Anaconda
+#### b. Set up virtual environment by Anaconda
 
 set up the structure of project directory as following:
 
 ```plaintext
 drf-subscription-app-tutorial/
-├─ requirements.txt
+├─ app_backend
 ```
 
-Inside the `requirements.txt`, enter few basic libraries:
-
-```plaintext
-Django==5.0.0
-django-cors-headers==4.2.0
-djangorestframework==3.15.0
-requests==2.32.3
-```
-
->Q&A:
->
->**1. how to check library version via conda**:
->
-> ```sh
-> conda search Django
->
-> # Sometimes a specific version may be available in a different channel. You can specify the channel during the search:
-> conda search -c conda-forge django-cors-headers
->
-> # To get more details about a specific version
-> conda search Django=4.2.0 --info
-> ```
->
-
-Then download package from new created virtual environment
+Navigate to Your Project Directory and then create a Virtual Environment.
 
 ```sh
-cd .\drf-subscription-app-tutorial
-conda create --name env python=3.11
+cd .\drf-subscription-app-tutorial\app_backend
+conda create --name env python=3.12
 conda activate env
-conda install pip
-cd .\drf-subscription-app-tutorial
-pip install -r requirements.txt
 ```
 
-## Set up Djnago project and start the server
+#### c. Set up Djnago project and start the server in Conda
 
 create django package
 
 ```sh
-cd .\drf-subscription-app-tutorial
-django-admin startproject backend
-cd backend
+conda install django=4.2.3
+django-admin backend backend .
+python manage.py migrate
 python manage.py runserver
 ```
 
-## Bring the project to Github
+You can now see the Django server up and running at `http://localhost:8000/`
 
-### a. Move requirement.txt to `/backend` and create `.gitignore` in the project folder
+#### d. prepare basic libraries in Conda
 
-```plaintext
-drf-subscription-app-Tutorial/
-├─ backend/
-│  ├─ backend/
-│  ├─ manage.py
-│  ├─ requirements.txt
-├─ .gitignore
+For conda, it is better to install the required libraries from `conda` if the libraries are available in conda.
+
+For packages that are not available in `conda`, you can then use `pip`
+
+```bash
+conda install djangorestframework=3.15.0
+conda install django-cors-headers=4.2.0
+conda install requests=2.32.3
 ```
 
-### b. Create a GitHub Repository
+To maintain the environment information, we need to export the conda env:
+
+```bash
+conda env export --from-history > environment.yml
+
+# The environment can be recreated with:
+conda env create -f environment.yml
+
+# if package is not available in conda, you need to download via pip and maintain these pip libraries in environment.yml manually
+```
+
+`environment.yml` will look like this:
+
+```yaml
+name: myenv
+channels:
+  - defaultss
+  - conda-forge
+dependencies:
+  - python=3.12
+  - django=5.0.0
+  - djangorestframework=3.15.0
+  - django-cors-headers=4.2.0
+  - requests=2.32.3
+  - pip
+  - pip:
+    - some-package-only-on-pip==1.2.3
+```
+
+> We will use venv + pip solution in this tutorial
+>
+> The deployment in the later tutorial will also use requirements.txt to maintain the packages
+
+## Bring the project to Github
+
+### a. Create a GitHub Repository
 
 * Go to [GitHub](https://github.com) and log in to your account.
 * Click on the "+" icon at the top right corner and select "New repository".

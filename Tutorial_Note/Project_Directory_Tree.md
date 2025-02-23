@@ -3,7 +3,7 @@
 ```plaintext
 drf-subscription-app-Tutorial/
 ├─ backend/
-│  ├─ api_auth
+│  ├─ api_auth/
 │  │  ├─ __init__.py
 │  │  ├─ apps.py
 │  │  ├─ models.py
@@ -11,19 +11,25 @@ drf-subscription-app-Tutorial/
 │  │  ├─ signals.py
 │  │  ├─ urls.py
 │  │  ├─ views.py
-│  ├─ backend
+│  ├─ backend/
 │  │  ├─ __init__.py
 │  │  ├─ asgi.py
 │  │  ├─ wsgi.py
 │  │  ├─ settings.py
 │  │  ├─ server_startup.py
 │  │  ├─ urls.py
-│  ├─ nginx
-│  │  ├─ Dockerfile
-│  │  ├─ nginx.conf
+│  ├─ nginx/
+│  │  ├─ Dockerfile.nginx.digitalocean
+│  │  ├─ nginx.digitalocean.conf
+│  │  ├─ Dockerfile.nginx.prod
+│  │  ├─ nginx.prod.conf
+│  ├─ scripts/
+│  │  ├─ setup-server.sh
 │  ├─ .env.docker.dev
 │  ├─ .env.docker.prod
+│  ├─ .env.docker.digitalocean
 │  ├─ .env
+│  ├─ .deploy.sh
 │  ├─ gunicorn.conf.py
 │  ├─ entrypoint.sh
 │  ├─ .dockerignore
@@ -31,24 +37,25 @@ drf-subscription-app-Tutorial/
 │  ├─ Dockerfile.prod
 │  ├─ docker-compose.dev.yml
 │  ├─ docker-compose.prod.yml
+│  ├─ docker-compose.digitalocean.yml
 │  ├─ manage.py
 │  ├─ requirement.txt
 ├─ frontend/
-│  ├─ public
-│  ├─ src
-│  │  ├─ assets
-│  │  ├─ components
+│  ├─ public/
+│  ├─ src/
+│  │  ├─ assets/
+│  │  ├─ components/
 │  │  │  ├─ AuthForm.jsx
 │  │  │  ├─ AuthForm.module.css
 │  │  │  ├─ GoogleLoginButton.jsx
 │  │  │  ├─ ProtectedRoute.jsx
-│  │  ├─ pages
+│  │  ├─ pages/
 │  │  │  ├─ Home.jsx
 │  │  │  ├─ Login.jsx
 │  │  │  ├─ LoginGoogleCallBack.jsx
 │  │  │  ├─ TestAPI.jsx
 │  │  │  ├─ TestDemo.jsx
-│  │  ├─ utils
+│  │  ├─ utils/
 │  │  │  ├─ auth.js
 │  │  ├─ App.jsx
 │  │  ├─ api.js
@@ -65,6 +72,6 @@ drf-subscription-app-Tutorial/
 ├─ local_db/
 │  ├─ docker-compose.yml
 ├─ .gitignore
-├─ .vscode
+├─ .vscode/
 │  ├─ launch.json
 ```

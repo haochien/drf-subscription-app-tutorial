@@ -362,8 +362,8 @@ Since it is not safe to push env file to the online repository, we will directly
 ```bash
 # in your local terminal
 
-cd /drf-subscription-app-Tutorial/backend/
-scp .env.docker.digitalocean root@your-droplet-ip:/root/drf-subscription-app-Tutorial/backend/
+cd /drf-subscription-app-tutorial/backend/
+scp .env.docker.digitalocean root@your-droplet-ip:/root/drf-subscription-app-tutorial/backend/
 ```
 
 ```bash
@@ -371,13 +371,13 @@ scp .env.docker.digitalocean root@your-droplet-ip:/root/drf-subscription-app-Tut
 ssh root@your-droplet-ip
 
 # Check file exists and has correct permissions
-ls -la /root/drf-subscription-app-Tutorial/backend/.env.docker.digitalocean
+ls -la /root/drf-subscription-app-tutorial/backend/.env.docker.digitalocean
 
 # View file content to verify
-cat /root/drf-subscription-app-Tutorial/backend/.env.docker.digitalocean
+cat /root/drf-subscription-app-tutorial/backend/.env.docker.digitalocean
 
 # Set proper permissions if needed
-chmod 600 /root/drf-subscription-app-Tutorial/backend/.env.docker.digitalocean
+chmod 600 /root/drf-subscription-app-tutorial/backend/.env.docker.digitalocean
 
 ```
 
