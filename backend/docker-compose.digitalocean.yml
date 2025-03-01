@@ -23,8 +23,8 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - logs_volume:/app/logs
-      - ../data/certbot/conf:/etc/letsencrypt
-      - ../data/certbot/www:/var/www/certbot
+      - ../data/certbot/conf:/etc/letsencrypt:ro
+      - ../data/certbot/www:/var/www/certbot:ro
     ports:
       - "80:80"
       - "443:443"
@@ -34,8 +34,8 @@ services:
   certbot:
     image: certbot/certbot
     volumes:
-      - ../data/certbot/conf:/etc/letsencrypt
-      - ../data/certbot/www:/var/www/certbot
+      - ../data/certbot/conf:/etc/letsencrypt:rw
+      - ../data/certbot/www:/var/www/certbot:rw
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 volumes:
