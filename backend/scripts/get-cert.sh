@@ -22,12 +22,22 @@ rm -rf /root/drf-subscription-app-tutorial/data/certbot/conf/archive/*
 rm -rf /root/drf-subscription-app-tutorial/data/certbot/conf/renewal/*
 rm -rf /root/drf-subscription-app-tutorial/data/certbot/conf/accounts/
 
-# Obtain a new certificate from Let's Encrypt's production server
+
+# Start a temporary Nginx for webroot authentication
+docker run --rm -d --name temp-nginx \
+  -v "/root/drf-subscription-app-tutorial/data/certbot/www:/usr/share/nginx/html" \
+  -p 80:80 \
+  nginx:alpine
+
+# Give Nginx a moment to start
+sleep 2
+
+
+# Obtain a new certificate using webroot
 docker run --rm \
   -v "/root/drf-subscription-app-tutorial/data/certbot/conf:/etc/letsencrypt" \
   -v "/root/drf-subscription-app-tutorial/data/certbot/www:/var/www/certbot" \
-  -p 80:80 \
-  certbot/certbot certonly --standalone \
+  certbot/certbot certonly --webroot -w /var/www/certbot \
   -d $DOMAIN \
   --email $EMAIL \
   --agree-tos \
@@ -36,21 +46,22 @@ docker run --rm \
   --server $SERVER_URL
 
 
+# Stop temporary Nginx
+docker stop temp-nginx
 
-# domains=(my-website.com)
-# email="your-email@example.com"
-# staging=0
-# docker run --rm -it \
+# # Obtain a new certificate from Let's Encrypt's production server
+# docker run --rm \
 #   -v "/root/drf-subscription-app-tutorial/data/certbot/conf:/etc/letsencrypt" \
 #   -v "/root/drf-subscription-app-tutorial/data/certbot/www:/var/www/certbot" \
-#   certbot/certbot certonly --webroot \
-#   -w /var/www/certbot \
-#   ${staging:+"--staging"} \
-#   --email $email \
+#   -p 80:80 \
+#   certbot/certbot certonly --standalone \
+#   -d $DOMAIN \
+#   --email $EMAIL \
 #   --agree-tos \
 #   --no-eff-email \
 #   --force-renewal \
-#   ${domains[@]/#/-d }
+#   --server $SERVER_URL
+
 
 
 # Verify the certificate

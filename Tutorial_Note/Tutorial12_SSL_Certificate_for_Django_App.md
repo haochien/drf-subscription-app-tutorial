@@ -66,6 +66,8 @@ In the `.gitignore`, we need to add the following entry:
 
 Create a new file `nginx.digitalocean.ssl.conf` with contents below under `/backend/nginx` directory:
 
+Please replace all 5 `my-website.com` in the script below to your real domain name
+
 ```nginxconf
 upstream django_backend {
     server web:8000;
@@ -76,7 +78,7 @@ server {
     listen 80;
     listen [::]:80;
 
-    server_name backendtest.haodevelop.com;
+    server_name my-website.com;
     server_tokens off;
     
     # Required for Let's Encrypt certificate enrollment
@@ -92,12 +94,12 @@ server {
 # HTTPS - proxy all requests to Django
 server {
     listen 443 ssl;
-    server_name backendtest.haodevelop.com;
+    server_name my-website.com;
     server_tokens off;
 
     # SSL certificates
-    ssl_certificate /etc/letsencrypt/live/backendtest.haodevelop.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/backendtest.haodevelop.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/my-website.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/my-website.com/privkey.pem;
     
     # SSL parameters
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -112,7 +114,7 @@ server {
     # OCSP Stapling
     ssl_stapling on;
     ssl_stapling_verify on;
-    ssl_trusted_certificate /etc/letsencrypt/live/backendtest.haodevelop.com/chain.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/my-website.com/chain.pem;
     resolver 1.1.1.1 8.8.8.8 valid=60s;
     resolver_timeout 5s;
 
@@ -285,7 +287,7 @@ docker compose -f docker-compose.digitalocean.ssl.yml build --no-cache
 # update get-cert.sh
 vi /root/drf-subscription-app-tutorial/backend/scripts/get-cert.sh
 # press i to go into insert mode 
-# update values in DOMAIN and EMAIL
+# update values in DOMAIN and EMAIL (due to rate limit, please keep STAGING=1 in testing)
 # press Esc, and type :wq to save
 
 
@@ -303,9 +305,90 @@ Verify your HTTPS setup via:
 curl -v https://my-website.com
 ```
 
-You can also check that your site is accessible in a web browser without SSL warnings. 
+If everything set up correctly, you should see:
 
-e.g. test with https://my-website.com/api/auth/test/ in your browser
+```plaintext
+* Connected to my-website.com (your-droplet-ip) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+*  CAfile: /etc/ssl/certs/ca-certificates.crt
+*  CApath: /etc/ssl/certs
+* TLSv1.0 (OUT), TLS header, Certificate Status (22):
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.2 (IN), TLS header, Certificate Status (22):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS header, Finished (20):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.2 (OUT), TLS header, Unknown (21):
+* TLSv1.3 (OUT), TLS alert, unknown CA (560):
+* SSL certificate problem: unable to get local issuer certificate
+* Closing connection 0
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
 
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+```
 
+You can also check that your site is accessible in a web browser (e.g. https://my-website.com/api/auth/test/)
 
+you will also see a certificate warning in your browser.
+
+The reason for the SSL certificate problem above is that our certificate is still using Let's Encrypt's staging environment which is why browsers and curl don't trust it.
+
+We need to do followings to get the certificate from Let's Encrypt's production environment:
+
+```bash
+ssh root@your-droplet-ip
+
+# update get-cert.sh
+vi /root/drf-subscription-app-tutorial/backend/scripts/get-cert.sh
+# press i to go into insert mode 
+# update values in STAGING to production mode (i.e. STAGING=0)
+# press Esc, and type :wq to save
+
+# execute again get-cert.sh
+./scripts/get-cert.sh
+```
+
+Now you will see:
+
+```plaintext
+* Connected to my-website.com (your-droplet-ip) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+*  CAfile: /etc/ssl/certs/ca-certificates.crt
+*  CApath: /etc/ssl/certs
+* TLSv1.0 (OUT), TLS header, Certificate Status (22):
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.2 (IN), TLS header, Certificate Status (22):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS header, Finished (20):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.2 (IN), TLS header, Supplemental data (23):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.2 (OUT), TLS header, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (OUT), TLS header, Supplemental data (23):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* ALPN, server accepted to use http/1.1
+* Server certificate:
+*  subject: CN=bmy-website.com
+*  start date: Mar  2 10:59:24 2024 GMT
+*  expire date: May 31 10:59:23 2024 GMT
+*  subjectAltName: host "my-website.com" matched cert's "my-website.com"
+*  issuer: C=US; O=Let's Encrypt; CN=E6
+*  SSL certificate verify ok.
+```
+
+And when you check your site via a web browser (e.g. https://my-website.com/api/auth/test/), you should also see no warning and can directly use this test api in DRF UI
