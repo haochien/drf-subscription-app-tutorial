@@ -261,14 +261,14 @@ ssh root@your-droplet-ip
 
 # remove existed containers
 cd /root/drf-subscription-app-tutorial/backend
-docker-compose -f docker-compose.digitalocean.yml down
+docker compose -f docker-compose.digitalocean.yml down
 
 # pull latest changes
 cd /root/drf-subscription-app-tutorial
 git pull origin main
 
 # build images based on latest changes
-docker-compose -f docker-compose.digitalocean.yml build
+docker compose -f docker-compose.digitalocean.yml build --no-cache
 
 # update get-cert.sh
 vi /root/drf-subscription-app-tutorial/backend/scripts/get-cert.sh

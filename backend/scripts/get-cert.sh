@@ -2,9 +2,19 @@
 
 DOMAIN=my-website.com  # Replace with your domain
 EMAIL=your-email@example.com  # Replace with your email
+STAGING=1  # Set to 0 for production, 1 for staging
 
 # Stop any running services that might use port 80
 docker compose -f docker-compose.digitalocean.yml stop nginx
+
+# Determine the correct Let's Encrypt server URL
+if [ "$STAGING" -eq 1 ]; then
+  SERVER_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
+  echo "Running in STAGING mode - certificates will NOT be trusted by browsers"
+else
+  SERVER_URL="https://acme-v02.api.letsencrypt.org/directory"
+  echo "Running in PRODUCTION mode - certificates will be trusted by browsers"
+fi
 
 # Remove any previous certificates to start fresh
 rm -rf /root/drf-subscription-app-tutorial/data/certbot/conf/live/*
@@ -23,7 +33,7 @@ docker run --rm \
   --agree-tos \
   --no-eff-email \
   --force-renewal \
-  --server https://acme-v02.api.letsencrypt.org/directory
+  --server $SERVER_URL
 
 
 
