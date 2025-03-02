@@ -175,7 +175,7 @@ services:
     container_name: subs_app_prod_nginx
     build:
       context: ./nginx
-      dockerfile: Dockerfile.nginx.digitalocean
+      dockerfile: Dockerfile.nginx.digitalocean.ssl
     image: subs_app_prod_nginx:latest
     volumes:
       - static_volume:/app/staticfiles
@@ -187,6 +187,7 @@ services:
       - "443:443"
     depends_on:
       - web
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
     restart: unless-stopped
   
   certbot:
@@ -217,9 +218,19 @@ Please keep the content as followings. We will change Domain and Email later dir
 
 DOMAIN=my-website.com  # Replace with your domain
 EMAIL=your-email@example.com  # Replace with your email
+STAGING=1  # Set to 0 for production, 1 for staging
 
 # Stop any running services that might use port 80
-docker compose -f docker-compose.digitalocean.yml stop nginx
+docker compose -f docker-compose.digitalocean.ssl.yml stop nginx
+
+# Determine the correct Let's Encrypt server URL
+if [ "$STAGING" -eq 1 ]; then
+  SERVER_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
+  echo "Running in STAGING mode - certificates will NOT be trusted by browsers"
+else
+  SERVER_URL="https://acme-v02.api.letsencrypt.org/directory"
+  echo "Running in PRODUCTION mode - certificates will be trusted by browsers"
+fi
 
 # Remove any previous certificates to start fresh
 rm -rf /root/drf-subscription-app-tutorial/data/certbot/conf/live/*
@@ -238,7 +249,7 @@ docker run --rm \
   --agree-tos \
   --no-eff-email \
   --force-renewal \
-  --server https://acme-v02.api.letsencrypt.org/directory
+  --server $SERVER_URL
 
 # Verify the certificate
 docker run --rm \
@@ -246,7 +257,7 @@ docker run --rm \
   certbot/certbot certificates
 
 # Start nginx and other services
-docker compose -f docker-compose.digitalocean.yml up -d
+docker compose -f docker-compose.digitalocean.ssl.yml up -d
 ```
 
 ## Obtain SSL Certificate and Start Services
@@ -261,14 +272,15 @@ ssh root@your-droplet-ip
 
 # remove existed containers
 cd /root/drf-subscription-app-tutorial/backend
-docker compose -f docker-compose.digitalocean.yml down
+docker compose -f docker-compose.digitalocean.ssl.yml down
 
 # pull latest changes
 cd /root/drf-subscription-app-tutorial
 git pull origin main
 
 # build images based on latest changes
-docker compose -f docker-compose.digitalocean.yml build --no-cache
+cd /root/drf-subscription-app-tutorial/backend
+docker compose -f docker-compose.digitalocean.ssl.yml build --no-cache
 
 # update get-cert.sh
 vi /root/drf-subscription-app-tutorial/backend/scripts/get-cert.sh

@@ -5,7 +5,7 @@ EMAIL=your-email@example.com  # Replace with your email
 STAGING=1  # Set to 0 for production, 1 for staging
 
 # Stop any running services that might use port 80
-docker compose -f docker-compose.digitalocean.yml stop nginx
+docker compose -f docker-compose.digitalocean.ssl.yml stop nginx
 
 # Determine the correct Let's Encrypt server URL
 if [ "$STAGING" -eq 1 ]; then
@@ -59,4 +59,4 @@ docker run --rm \
   certbot/certbot certificates
 
 # Start nginx and other services
-docker compose -f docker-compose.digitalocean.yml up -d
+docker compose -f docker-compose.digitalocean.ssl.yml up -d
