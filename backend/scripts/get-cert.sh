@@ -9,10 +9,12 @@ docker compose -f docker-compose.digitalocean.ssl.yml stop nginx
 
 # Determine the correct Let's Encrypt server URL
 if [ "$STAGING" -eq 1 ]; then
-  SERVER_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
+  # SERVER_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
+  STAGING_FLAG="--staging"
   echo "Running in STAGING mode - certificates will NOT be trusted by browsers"
 else
-  SERVER_URL="https://acme-v02.api.letsencrypt.org/directory"
+  # SERVER_URL="https://acme-v02.api.letsencrypt.org/directory"
+  STAGING_FLAG=""
   echo "Running in PRODUCTION mode - certificates will be trusted by browsers"
 fi
 
@@ -43,13 +45,15 @@ docker run --rm \
   --agree-tos \
   --no-eff-email \
   --force-renewal \
-  --server $SERVER_URL
+  $STAGING_FLAG
+  #--server $SERVER_URL
 
 
 # Stop temporary Nginx
 docker stop temp-nginx
 
-# # Obtain a new certificate from Let's Encrypt's production server
+
+# # Obtain a new certificate using standalone approach
 # docker run --rm \
 #   -v "/root/drf-subscription-app-tutorial/data/certbot/conf:/etc/letsencrypt" \
 #   -v "/root/drf-subscription-app-tutorial/data/certbot/www:/var/www/certbot" \
@@ -61,7 +65,6 @@ docker stop temp-nginx
 #   --no-eff-email \
 #   --force-renewal \
 #   --server $SERVER_URL
-
 
 
 # Verify the certificate

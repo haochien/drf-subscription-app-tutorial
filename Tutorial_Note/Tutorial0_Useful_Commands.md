@@ -15,13 +15,21 @@ docker volume ls
 
 # Remove container
 docker rm -f my_container
+# Remove all containers
+docker container prune
 
 # Remove image
 docker rmi my_image:latest
+# Remove all  unused images
+docker image prune -a
 
 # Remove volume
 docker volume rm my_volume
+# Remove all volumes
+docker volume prune
 
+# Remove all unused containers, volumes, networks and images
+docker system prune -a --volumes
 ```
 
 ## Docker compose
@@ -88,6 +96,24 @@ reword abc1234 Old commit message 1
 pick def5678 Old commit message 2
 # Then you can modify message "Old commit message 1". use :wq to save and quit
 
+
+# --- rollback current working branch ---
+
+## --- clean untracked files ---
+# Print out the list of files and directories which will be removed (dry run)
+git clean -n -d
+# Delete the files from the repository
+git clean -f
+# Remove directories, run:
+git clean -fd
+# Remove ignored files, run:
+git clean -fX
+# Remove ignored and non-ignored files, run 
+git clean -fx
+
+## --- Remove all uncommitted changes ---
+# always do `git status` before run git reset
+git reset --hard
 
 
 # --- update content for the commit ---
