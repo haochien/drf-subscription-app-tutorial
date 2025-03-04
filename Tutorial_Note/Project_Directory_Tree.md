@@ -20,10 +20,14 @@ drf-subscription-app-Tutorial/
 │  │  ├─ urls.py
 │  ├─ nginx/
 │  │  ├─ Dockerfile.nginx.digitalocean
-│  │  ├─ nginx.digitalocean.conf
+│  │  ├─ Dockerfile.nginx.digitalocean.ssl
 │  │  ├─ Dockerfile.nginx.prod
+│  │  ├─ nginx.digitalocean.conf
+│  │  ├─ nginx.digitalocean.ssl.conf
 │  │  ├─ nginx.prod.conf
 │  ├─ scripts/
+│  │  ├─ deploy.sh
+│  │  ├─ get-cert.sh
 │  │  ├─ setup-server.sh
 │  ├─ .env.docker.dev
 │  ├─ .env.docker.prod
@@ -38,6 +42,7 @@ drf-subscription-app-Tutorial/
 │  ├─ docker-compose.dev.yml
 │  ├─ docker-compose.prod.yml
 │  ├─ docker-compose.digitalocean.yml
+│  ├─ docker-compose.digitalocean.ssl.yml
 │  ├─ manage.py
 │  ├─ requirement.txt
 ├─ frontend/
