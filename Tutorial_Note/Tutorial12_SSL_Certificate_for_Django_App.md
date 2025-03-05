@@ -6,10 +6,138 @@ After setup, your app will be able to be connected via HTTPS.  In addition, all 
 
 This setup uses:
 
-* `Docker containers` for service isolation
-* `Nginx` as a reverse proxy
+* `Docker containers` for service isolation and deployment consistency
+* `Nginx` as a reverse proxy handling SSL termination
 * `Certbot` to obtain and renew SSL certificates from Let's Encrypt
-* `Django/Gunicorn` as the application server
+* `Django application` running with `Gunicorn` as the WSGI server
+
+Key Configuration Files:
+
+* `nginx.digitalocean.ssl.conf`: Configures Nginx to handle HTTP/HTTPS traffic with SSL
+* `Dockerfile.nginx.digitalocean.ssl`: Builds the Nginx container with SSL configuration
+* `docker-compose.digitalocean.ssl.yml`: Orchestrates the web, Nginx, and Certbot containers
+* `settings.py`: Contains Django SSL security settings
+* `get-cert.sh`: Script to obtain and renew SSL certificates
+
+SSL Implementation Strategy:
+
+* HTTP traffic (port 80) gets redirected to HTTPS (port 443) with a 301 redirect
+* Let's Encrypt validation accessed through /.well-known/acme-challenge/ path
+* Strong TLS configuration (TLS 1.2/1.3, modern ciphers)
+* Automatic certificate renewal via Certbot container
+
+## Request Flow Through the System
+
+![image14](./Tutorial_Images/DigitalOcean/image14.png)
+
+1. Client Request:
+
+    * A user makes a request to https://my-website.com
+
+2. Nginx SSL Termination:
+
+    * The Nginx container receives the request on port 443
+    * It decrypts the SSL/TLS traffic using the certificates in `/etc/letsencrypt/`
+    * For HTTP requests to port 80, Nginx redirects to HTTPS with a 301 redirect
+
+3. Proxy to Django:
+
+    * Nginx forwards the decrypted request to the Django container
+    * Important headers are added: X-Forwarded-Proto: https, X-Real-IP, etc.
+
+4. Django Processing:
+
+    * Django sees X-Forwarded-Proto: https and treats the request as secure
+    * It processes the request and sends a response
+    * Secure cookies are set with the secure flag
+
+5. Response Return:
+
+    * Nginx receives the response from Django
+    * It encrypts the response with SSL/TLS
+    * The encrypted response is sent back to the client
+
+## Background Knowledge for SSL Certificate setup
+
+### About Let's Encrypt
+
+`Let’s Encrypt` issues certificates through an automated API based on the `ACME protocol`.
+
+> The Automatic Certificate Management Environment (ACME) protocol is a communications protocol for automating interactions
+>
+> between certificate authorities and their users' servers, allowing the automated deployment of public key infrastructure at very low cost.
+
+In order to interact with the Let’s Encrypt API and get a certificate, a piece of software called an `ACME client` is required.
+
+You this tutorial, we will select and operate an ACME client by ourself. We use [Certbot ACME client](https://certbot.eff.org/).
+
+### How Let's Encrypt Validates Your Domain (The Challenge)
+
+Let's Encrypt needs to verify that you actually control the domain before giving you a certificate. Think of it like proving you own a house before getting mail delivered there.
+
+Imagine this conversation:
+
+```plaintext
+You: "Hello Let's Encrypt, I'd like a certificate for my-website.com."
+Let's Encrypt: "How do I know you control that domain? I'll give you a test. 
+               Please create a special file at http://my-website.com/.well-known/acme-challenge/abc123 with content xyz789. 
+               When I visit that URL and see that content, I'll know you control the domain."
+You: "OK, I've created the file."
+Let's Encrypt: [checks the URL] "Great! I can see the file. You've proven you control the domain. Here's your certificate."
+```
+
+In our setup:
+
+1. `get-cert.sh` script runs `Certbot` (via `Certificate Signing Request (CSR)`) to ask `Let's Encrypt` for a certificate
+2. `Let's Encrypt` gives `Certbot` a random challenge token
+3. `Certbot` places this token in `/var/www/certbot/.well-known/acme-challenge/`
+4. `Nginx` server is configured to serve files from this location
+5. `Let's Encrypt` visits the challenge URL to verify the token
+6. If successful, Let's Encrypt issues the certificate. The certificates are stored in `/etc/letsencrypt/live/your-website.com/`
+
+Note:
+
+* The key pair is generated locally on your server within the Certbot container when you run `get-cert.sh`.
+* Private key is stored in: `/etc/letsencrypt/live/my-website.com/privkey.pem`
+* Public key is embedded in the certificate at `/etc/letsencrypt/live/my-website.com/cert.pem`
+* Signed certificate is stored in `/etc/letsencrypt/live/my-website.com/fullchain.pem`
+* Certificate Signing Request (CSR) which is singed with the private key contains: domain name, public key, and other identifying information
+
+More details: [how-it-works](https://letsencrypt.org/how-it-works/)
+
+### How SSL Certificate protect data transaction
+
+Step 1: Establishing a Secure Connection
+
+1. A user types https://my-website.com in their browser
+2. Their browser connects to your Nginx server on port 443
+3. Your Nginx server presents the SSL certificate from Let's Encrypt
+4. The browser verifies the certificate is valid and trusted
+5. The browser and server perform a `TLS handshake` to create a secure connection:
+    * The browser create a random `session key` (i.e. `symmetric key`) and it is encrypted by yours server's public key (from the certificate)
+    * The encrypted session key is sent to your server
+    * Your Nginx server receives the encrypted session key. It uses your private key (which only exists on your server) to decrypt the session key
+    * Now both the browser and your server know the same session key, but nobody else does
+
+Step 2: Encrypting the Traffic
+
+Let's say a user is logging in with username "alice" and password "secure123":
+
+1. The browser encrypts the login data by session key: alice:secure123 becomes something like jH8%fLq!2pX*dR7@
+2. This encrypted data and session key is sent over the internet. If someone intercepts the traffic, they only see the encrypted version
+
+Step 3: Decryption at the Server
+
+1. Your Nginx server receives the encrypted traffic
+2. Using the session key in the server to decrypt the data
+3. The original alice:secure123 is recovered
+4. Nginx forwards this decrypted data to your Django application
+
+Step 3: The server encrypts the response
+
+1. Django processes the request and sends back a response
+2. Nginx encrypts the response
+3. The browser receives and decrypts the response for the user
 
 ## Configure Your Domain DNS
 
@@ -64,6 +192,49 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 ```
 
+1. `SECURE_PROXY_SSL_HEADER`:
+
+    It tells Django to trust the X-Forwarded-Proto header from Nginx.
+
+    When the Django app sits behind Nginx (as in your case), Django doesn't directly receive the HTTPS connection.
+
+    Instead, Nginx handles the SSL/TLS termination, and forwards the decrypted request to Django over a regular HTTP connection. 
+
+    Without this setting, Django thinks all requests are coming over plain HTTP.
+
+    This setting says: "If Nginx sends me a header called X-Forwarded-Proto with the value https, believe that the original request was indeed HTTPS."
+
+2. `SECURE_SSL_REDIRECT`:
+
+    If a user tries to access your site via plain HTTP, Django will automatically redirect them to the HTTPS version of the same URL.
+
+    This would be technically redundant in our specific setup because we will use Nginx configuration to handles this redirection:
+
+    ```nginx
+    # in nginx.digitalocean.ssl.conf
+    
+    location / {
+        return 301 https://$host$request_uri;
+    }
+    ```
+
+    However, we can still keep it and serve it as a good security fallback
+
+3. `SESSION_COOKIE_SECURE`:
+
+    Ensures that Django only sends session cookies over HTTPS connections.
+
+    The session cookie is how Django keeps track of logged-in users. This setting adds a Secure flag to these cookies,
+
+    telling browsers to only send them back over HTTPS connections, never over plain HTTP.
+
+    This prevents the session cookie from being intercepted by attackers
+
+4. `CSRF_COOKIE_SECURE`:
+
+    CSRF (Cross-Site Request Forgery) tokens protect against attacks where malicious sites try to submit forms to your site using a logged-in user's credentials.
+
+    This setting ensures these protection tokens are only transmitted over HTTPS.
 
 ## Set Up Directory Structure in your Droplet
 
@@ -101,6 +272,77 @@ In the `.gitignore`, we need to add the following entry:
 /data/certbot/
 ```
 
+### `/data/certbot/www/.well-known/acme-challenge/`
+
+This directory is used exclusively for domain validation during the certificate issuance and renewal process.
+
+It's where Let's Encrypt verifies that you control the domain before issuing certificates.
+
+The temporary challenge files only exist during the verification process, and are automatically created and removed by Certbot.
+
+We will later create a volume and mapped it to `/var/www/certbot` in the container
+
+### `/data/certbot/conf`
+
+This directory stores all the certificates, private keys, renewal configurations, and Let's Encrypt account information. 
+
+It's the persistent storage for your SSL/TLS credentials.
+
+We will later create a volume and mapped it to `/etc/letsencrypt` in the container.
+
+After the certificate process is kicked off and succeed, you will find following folders and files under this directory
+
+```plaintext
+
+/etc/letsencrypt/
+├── accounts/                  # Let's Encrypt account information
+│   └── acme-v02...directory/  # Contains your account registration
+│       └── ...
+├── archive/                   # Archive of all certificates and keys (versioned)
+│   └── my-website.com/
+│       ├── cert1.pem          # Your certificate (version 1)
+│       ├── chain1.pem         # Intermediate certificate(s)
+│       ├── fullchain1.pem     # cert1.pem + chain1.pem combined
+│       └── privkey1.pem       # Your private key (version 1)
+├── csr/                       # Certificate signing requests
+│   └── ...
+├── keys/                      # Backup of private keys
+│   └── ...
+├── live/                      # Symlinks to the latest certificates
+│   └── my-website.com/
+│       ├── cert.pem
+│       ├── chain.pem
+│       ├── fullchain.pem
+│       └── privkey.pem
+└── renewal/                   # Renewal configuration files
+    └── my-website.com.conf  # Renewal settings for your domain
+
+```
+
+The `/data/certbot/conf` directory should be backed up regularly.
+
+1. live/domain/privkey.pem:
+
+    * Your private key (never shared)
+    * Used by Nginx to decrypt HTTPS traffic
+    * Referenced in your Nginx config as `ssl_certificate_key`
+
+2. live/domain/fullchain.pem:
+
+    * Contains your certificate + intermediate certificates
+    * Sent to browsers to establish trust
+    * Referenced in your Nginx config as `ssl_certificate`
+
+3. live/domain/cert.pem:
+
+    * Just your certificate without the chain
+    * Rarely used directly (fullchain.pem is preferred)
+
+4. live/domain/chain.pem:
+
+    * Intermediate certificates only
+    * Used to establish the trust chain to a root certificate
+
 ## Create Nginx Configuration for SSL
 
 ### 1. Set up a new nginx conf
@@ -110,6 +352,7 @@ Create a new file `nginx.digitalocean.ssl.conf` with contents below under `/back
 Please replace all 5 `my-website.com` in the script below to your real domain name
 
 ```nginxconf
+# Upstream Block
 upstream django_backend {
     server web:8000;
 }
@@ -176,14 +419,287 @@ server {
 
 ```
 
-* HTTP Server Block: Handles HTTP requests on port 80
-  * Redirects all traffic to HTTPS except for Let's Encrypt challenge requests
-  * Serves .well-known/acme-challenge/ for certificate validation
+1. Upstream Block
 
-* HTTPS Server Block: Handles HTTPS requests on port 443
-  * Configures SSL with modern TLS protocols and strong ciphers
-  * Proxies requests to the Django application
-  * Serves static files
+    This defines a group of servers (in this case just one) that Nginx can proxy requests to.
+
+    This creates a named reference to your Django application that you can use in `proxy_pass`s directives. The name "web" refers to your Django container as defined in docker-compose.
+
+2. HTTP Server Block: Handles HTTP requests on port 80
+
+    Usage:
+
+    * Redirects all traffic to HTTPS except for Let's Encrypt challenge requests
+    * Serves .well-known/acme-challenge/ for certificate validation
+
+    Components:
+
+    * Listen Directives:
+
+        ```nginx
+        listen 80;
+        listen [::]:80;
+        ```
+
+        Tells Nginx to listen for HTTP connections on port 80, for both IPv4 (listen 80;) and IPv6 (listen [::]:80;).
+
+    * Server Name:
+
+        ```nginx
+        server_name my-website.com;
+        ```
+
+        Specifies which domain this server block handles. Nginx might host multiple domains, and this tells it which configuration to use for requests to your domain.
+
+    * Server Tokens:
+
+        ```nginx
+        server_tokens off;
+        ```
+
+        Prevents Nginx from sending its version number in HTTP headers and error pages.
+
+        It's a security measure that reduces information disclosure about your server.
+
+    * ACME Challenge Location:
+
+        ```nginx
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+        ```
+
+        Configures Nginx to serve files from Certbot's webroot for Let's Encrypt challenges.
+
+        When access via `my-website.com/.well-known/acme-challenge`, it would bring the files under `/var/www/certbot/.well-known/acme-challenge` in the container.
+
+        Based on our docker volume setup, the same files will also be shared in directory `/data/certbot/www/.well-known/acme-challenge`
+
+    * HTTP to HTTPS Redirect:
+
+        ```nginx
+        location / {
+            return 301 https://$host$request_uri;
+        }
+        ```
+
+        Redirects all HTTP requests to HTTPS, except for the ACME challenge location. This ensures all traffic uses encrypted connections for security.
+
+
+
+
+
+
+
+
+
+3. HTTPS Server Block: Handles HTTP requests on port 80
+
+    Usage:
+
+    * Configures SSL with modern TLS protocols and strong ciphers
+    * Proxies requests to the Django application
+    * Serves static files
+
+    Components:
+
+    * SSL Listen Directive:
+
+        ```nginx
+        listen 443 ssl;
+        ```
+
+        Tells Nginx to listen for HTTPS connections on port 443 and enable SSL for this server block.
+
+    * SSL Certificate Paths:
+
+        ```nginx
+        ssl_certificate /etc/letsencrypt/live/backendtest.haodevelop.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/backendtest.haodevelop.com/privkey.pem;
+        ```
+
+        Specifies the paths to your SSL certificate and private key. These files are required for SSL/TLS encryption.
+
+    * SSL Protocols:
+
+        ```nginx
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ```
+
+        Specifies which SSL/TLS protocol versions are allowed.
+
+        Older protocols (TLS 1.0, TLS 1.1, SSL 3.0, SSL 2.0) have security vulnerabilities.
+
+        Without this line, Nginx would use default protocols, potentially allowing connections with insecure protocol versions.
+
+    * SSL Ciphers:
+
+        ```nginx
+        ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+        ssl_prefer_server_ciphers off;
+        ```
+
+        `ssl_ciphers` defines which encryption algorithms are allowed for SSL/TLS connections.
+
+        Some cipher suites have known vulnerabilities or weaknesses. This list includes only strong, modern ciphers.
+
+        `ssl_prefer_server_ciphers` determines whether to use the server's or client's cipher preferences.
+
+        Modern clients (browsers) often have better cipher ordering than servers.
+
+        Without this line, Nginx would use its own cipher preferences, potentially using less optimal ciphers for some clients.
+
+    * SSL Session Parameters:
+
+        ```nginx
+        ssl_session_timeout 1d;
+        ssl_session_cache shared:SSL:50m;
+        ssl_session_tickets off;
+        ```
+
+        `ssl_session_timeout`: How long SSL session information is cached
+        `ssl_session_cache`: Allocates 50MB of shared memory for caching SSL session information
+        `ssl_session_tickets`: Disables stateless session resumption mechanism
+
+        Session caching improves performance by allowing session resumption without full handshakes.
+
+        We disable session tickets to prevent ourself from exposing to potential session ticket vulnerabilities.
+
+        > * What is session tickets:
+        >
+        >   SSL/TLS session tickets are a mechanism to improve performance by enabling faster reconnections in secure connections (HTTPS).
+        >
+        >   When a client (like your browser) connects to a server securely, They perform a TLS handshake which involves Cryptographic algorithm negotiation, Certificate validation, Key exchange, and Authentication.
+        >
+        >   This process is computationally expensive, requiring multiple round trips and cryptographic operations.
+        >
+        > * How Session Tickets Work:
+        >
+        >   1. Client and server complete a full TLS handshake. Server generates session parameters (encryption keys, cipher choices, etc.)
+        >   2. Server encrypts all these session parameters using a server-side key (the "session ticket key")
+        >   3. This encrypted data becomes the "session ticket". Server sends this ticket to the client
+        >   4. Client stores this opaque ticket (it can't read the contents)
+        >   5. When the client reconnects, it sends the ticket back to the server. Server decrypts the ticket using its session ticket key and retrieves the previous session parameters
+        >
+        >   This process allows resuming the session without repeating the full handshake
+        >
+        > * The Security Concern:
+        >
+        >   1. If an attacker obtains this key, they can decrypt all session tickets (single point of vulnerability)
+        >   2. This allows them to recover session information for any connection using these tickets
+        >   3. It also potentially allows decryption of recorded TLS traffic that used these tickets
+
+    * OCSP Stapling:
+
+        ```nginx
+        ssl_stapling on;
+        ssl_stapling_verify on;
+        ssl_trusted_certificate /etc/letsencrypt/live/my-website.com/chain.pem;
+        resolver 1.1.1.1 8.8.8.8 valid=60s;
+        resolver_timeout 5s;
+        ```
+
+        OCSP (Online Certificate Status Protocol) stapling allows Nginx to check certificate revocation status and include it in the SSL handshake.
+
+        Without OCSP stapling, clients would need to check certificate revocation separately, slowing down connections.
+
+        `resolver` specifies DNS resolvers for Nginx to use when doing OCSP stapling. (1.1.1.1: Cloudflare ; 8.8.8.8: Google)
+
+        > * The Problem OCSP Stapling Solves:
+        >
+        >   When a client connects to a secure website, it needs to verify the server's certificate is valid and hasn't been revoked. Traditionally, this happens in two ways:
+        >
+        >   1. CRL (Certificate Revocation List): Large files listing all revoked certificates
+        >   2. OCSP (Online Certificate Status Protocol): Real-time checking with the Certificate Authority
+        >
+        >   The traditional OCSP process has several issues:
+        >
+        >   1. Privacy concerns: The CA learns which sites users visit
+        >   2. Performance impact: Adds connection latency
+        >   3. Reliability problems: If the OCSP server is down, connections might fail or timeout
+        >
+        > * How OCSP Stapling Works:
+        >
+        >   1. The web server periodically contacts the OCSP server of its Certificate Authority
+        >   2. It requests validation of its own certificate
+        >   3. The CA returns a time-stamped, signed OCSP response confirming the certificate status
+        >   4. When a client connects, the server "staples" (attaches) this OCSP response to the SSL/TLS handshake
+        >   5. The client verifies this signed response came from the proper CA
+        >   6. The client accepts the certificate validity without needing to contact the CA directly
+
+    * Proxy to Django:
+
+        ```nginx
+        location / {
+            proxy_pass http://django_backend;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+            client_max_body_size 20M;
+        }
+        ```
+
+        * `proxy_pass http://django_backend;`: Forwards requests to your Django application.
+
+        * `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for`:
+            Passes client IP information to Django. Without this line, Django would only see Nginx's IP, not the actual client IP, affecting logging and IP-based features.
+
+            It will create a comma-separated list showing the complete chain of proxies.
+
+            If a request passes through multiple proxies:
+
+            ```plaintext
+            Original client IP: 203.0.113.1 --> First proxy: 192.168.1.1 --> Your Nginx: 10.0.0.1
+            The X-Forwarded-For header with `$proxy_add_x_forwarded_for` would become: 203.0.113.1, 192.168.1.1
+            The X-Forwarded-For header with `$remote_addr` would become: 203.0.113.1
+            ```
+
+        * `proxy_set_header Host $host;`:
+            Passes the original Host header to Django. It tells the server which website to serve.
+
+            If a user visits https://my-website.com/api/auth/, the Host header will be my-website.com.
+
+            Other options:
+
+            ```plaintext
+            proxy_set_header Host $http_host;
+                - Includes the host and port (e.g., backendtest.haodevelop.com:443)
+                - Useful if your backend application needs to know the port
+
+            proxy_set_header Host $server_name;
+                - Uses the server name defined in the Nginx configuration
+                - Useful if you want to force a specific hostname regardless of the client request
+            ```
+
+        * `proxy_set_header X-Real-IP $remote_addr`:
+            Passes the client's IP address to Django. Simpler than X-Forwarded-For as it only contains a single IP address
+
+            Alternative options:
+
+            ```plaintext
+            proxy_set_header X-Real-IP $http_x_forwarded_for;
+
+            Uses the first IP from an existing X-Forwarded-For header
+            Useful if Nginx is behind another proxy and you trust that proxy's XFF header
+            ```
+
+        * `proxy_set_header X-Forwarded-Proto $scheme;`: Tells Django whether the original request was HTTP or HTTPS.
+        * `proxy_redirect off;`: Prevents Nginx from rewriting Location headers from your application.
+        * `client_max_body_size 20M;`: Sets maximum size for client request bodies (e.g., file uploads).
+
+    * Static Files Location:
+
+        ```nginx
+        location /static/ {
+            alias /app/staticfiles/;
+        }
+        ```
+
+        Serves static files directly from Nginx instead of passing requests to Django.
+
+        Nginx serves static files much more efficiently than Django.
 
 ### 2. Set up a new nginx Dockerfile
 
@@ -272,6 +788,80 @@ Volume Mounts:
 * certbot/conf: Let's Encrypt certificates and configuration
 * certbot/www: Webroot for Let's Encrypt challenges
 
+`"/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"`: Reloads Nginx every 6h to pick up new certificates
+`"/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot --webroot-path=/var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"` Attempts certificate renewal every 12h
+
+Here, we uses the default Certbot behavior, which typically keeps the same key pair but generates a new CSR and gets a new certificate. (i.e. renew certificate but not key pair)
+
+Let's rewrite both command to more readable way to easily understand:
+
+```bash
+#!/bin/bash
+
+# Start Nginx in the background
+nginx -g "daemon off;" &   # When you run a command followed by & in bash, that command runs in the background, and $! gives you its PID.
+NGINX_PID=$!
+
+# Start an infinite loop that reloads Nginx every 6 hours
+
+while true; do
+  # Sleep for 6 hours in the background
+  sleep 6h &
+  wait $!   # Wait for the sleep PID to complete (this line is technically redundent)
+
+  # Reload Nginx
+  echo "Reloading Nginx configuration..."
+  nginx -s reload
+done &
+
+# Wait for the Nginx process to finish (which should be never unless it crashes)
+wait $NGINX_PID
+
+# In Docker containers, having at least one foreground process is vital to keep the container running.
+# Thus in the one line command, `nginx -g "daemon off` is put in the end of command to run in the foreground
+```
+
+```bash
+#!/bin/bash
+
+# Set up a handler for the TERM signal to exit cleanly
+# When Docker tries to stop the container gracefully (with docker stop), it sends a TERM signal
+# Without this line, the script would continue running its infinite loop, ignoring the signal
+trap "echo 'Received SIGTERM, exiting...'; exit" TERM
+
+# Check for certificate renewal every 12 hours
+while true; do
+  # Attempt to renew certificates that are due
+  echo "Checking for certificates that need renewal..."
+  certbot renew --webroot --webroot-path=/var/www/certbot --quiet
+  
+  # Sleep for 12 hours before checking again
+  echo "Next renewal check in 12 hours"
+  sleep 12h
+done
+```
+
+If you want to renew key pair, change certbot entry point (adding `--key-type rsa` an `--rsa-key-size 4096`):
+`"/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot --webroot-path=/var/www/certbot --key-type rsa --rsa-key-size 4096 --quiet; sleep 12h & wait $${!}; done;'"`
+
+Or manually run (see more details in the next section - Create Certificate Acquisition Script):
+
+```bash
+# Obtain a new certificate with a new key
+docker run --rm \
+  -v "/root/drf-subscription-app-tutorial/data/certbot/conf:/etc/letsencrypt" \
+  -v "/root/drf-subscription-app-tutorial/data/certbot/www:/var/www/certbot" \
+  certbot/certbot certonly --webroot -w /var/www/certbot \
+  -d $DOMAIN \
+  --email $EMAIL \
+  --agree-tos \
+  --no-eff-email \
+  --force-renewal \
+  --key-type rsa \
+  --rsa-key-size 4096 \
+  $STAGING_FLAG
+```
+
 ## Create Certificate Acquisition Script
 
 Create a new file `get-cert.sh` with contents below under `/backend/scripts` directory.
@@ -336,6 +926,21 @@ docker run --rm \
 # Start nginx and other services
 docker compose -f docker-compose.digitalocean.ssl.yml up -d
 ```
+
+The workflow in this script:
+
+* Temporarily stops the Nginx container to free port 80
+* Uses a temporary Nginx container to serve the ACME challenge files
+* Runs Certbot in a container to obtain the initial certificate
+* Restarts the main services with the new certificate
+
+Initial Certificate Acquisition
+
+* The `get-cert.sh` script is run manually when setting up the server
+* It stops any running Nginx instances and starts a temporary one
+* `Certbot` container obtains certificates from `Let's Encrypt` using the `webroot` method
+* `Let's Encrypt` validates domain ownership by accessing files in `/.well-known/acme-challenge/`
+* Certificates are stored in the `/data/certbot/conf` directory (mounted to `/etc/letsencrypt` in containers)
 
 Besides using staging flag, you can also directly define the server to get staging certificate or production certificate.
 
@@ -600,8 +1205,10 @@ And when you check your site via a web browser (e.g. https://my-website.com/api/
 Let's Encrypt certificates operate with the following timeline:
 
 * Certificates are valid for 90 days
-* Automated renewal attempts typically start 30 days before expiration
-* our container is configured to check every 12 hours (twice daily)
+* The Certbot container runs continuously, checking for renewal every 12 hours
+* When certificates are nearing expiration (30 days before), it automatically renews them`
+* For renewal, Certbot uses the webroot method, placing challenge files in `/var/www/certbot`
+* Nginx reloads every 6 hours to pick up newly renewed certificates
 
 You can check your certificate status by `docker exec subs_app_prod_certbot certbot certificates`
 To properly test that your automatic certificate renewal will work when needed, here are three methods:
@@ -698,7 +1305,7 @@ server {
     listen 80;
     listen [::]:80;
 
-    server_name backendtest.haodevelop.com;
+    server_name my-website.com;
     server_tokens off;
     
     # Required for LE certificate enrollment
