@@ -22,6 +22,7 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('api_auth.urls')),
+    path('health/', include('health_check.urls')),
 ] 
 
 # if bool(settings.DEBUG):

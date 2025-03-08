@@ -55,7 +55,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
-    'api_auth'
+    'api_auth',
+    'health_check'
 ]
 
 MIDDLEWARE = [
@@ -235,6 +236,6 @@ CORS_ALLOW_CREDENTIALS = True
 
 # SSL setting
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG

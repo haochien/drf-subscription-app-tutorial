@@ -9,7 +9,7 @@ The list below contains all suggested items:
 * Configure proper Gunicorn workers
 * Add HTTP security headers
 * Implement global rate limiting
-* Add basic health check endpoint
+* Add health check endpoint
 
 ## Generate and update SECRET_KEY
 
@@ -603,3 +603,198 @@ This configuration:
 * Doesn't try to distinguish between user types (that's left to Django)
 * Uses $binary_remote_addr for efficient IP tracking
 * Allows a burst of 20 requests per second and 10 request per minute to handle legitimate traffic spikes
+
+## Add health check endpoint
+
+Health checks serve several critical purposes in production environments:
+
+* Service availability monitoring: Allows monitoring tools to verify if your application is running properly
+* Load balancer integration: Helps load balancers determine which backend servers can receive traffic
+* Container orchestration: Enables systems like Kubernetes to know when to restart failing containers
+* Deployment verification: Confirms new deployments are functioning correctly
+* Automated recovery: Facilitates self-healing systems that can restart services when they fail
+
+Without health checks:
+
+* Silent failures: Your application could be malfunctioning without alerting any monitoring systems
+* Manual intervention required: Administrators would need to manually check and restart services
+* Extended downtime: Problems might not be detected until users report them
+* Unreliable service discovery: Load balancers can't effectively route traffic away from unhealthy instances
+
+We will create two type of health check :
+
+* Basic endpoint (`/health/`): Database check (/health/db/): Verifies database connectivity
+* Database check (`/health/db/`): Verifies database connectivity
+
+### 1. Create a New Django App for Health Checks
+
+run following command to create new health_check app inside your Django project
+
+```bash
+python manage.py startapp health_check
+```
+
+### 2. Create the Health Check Views
+
+Under `backend/health_check/views.py`:
+
+```python
+from django.http import JsonResponse
+from django.db import connections
+from django.db.utils import OperationalError
+import logging
+import time
+
+logger = logging.getLogger(__name__)
+
+
+def health_check_basic(request):
+    """
+    Basic health check - just confirms the application is responding
+    """
+    return JsonResponse({
+        'status': 'ok',
+        'service': 'api',
+        'timestamp': time.time()
+    })
+
+
+def health_check_db(request):
+    """
+    Checks database connectivity
+    """
+    start_time = time.time()
+    try:
+        # Try to connect to each database and execute a simple query
+        for name in connections:
+            cursor = connections[name].cursor()
+            cursor.execute("SELECT 1")
+            row = cursor.fetchone()
+            if row is None:
+                return JsonResponse({
+                    'status': 'error',
+                    'service': 'api',
+                    'database': name,
+                    'message': 'Database query returned no results',
+                    'timestamp': time.time()
+                }, status=500)
+        
+        response_time = time.time() - start_time
+        return JsonResponse({
+            'status': 'ok',
+            'service': 'api',
+            'database_response_time': response_time,
+            'timestamp': time.time()
+        })
+    
+    except OperationalError as e:
+        logger.error(f"Database health check failed: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'service': 'api',
+            'message': f'Database error: {str(e)}',
+            'timestamp': time.time()
+        }, status=500)
+    except Exception as e:
+        logger.error(f"Unexpected error during database health check: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'service': 'api',
+            'message': f'Unexpected error: {str(e)}',
+            'timestamp': time.time()
+        }, status=500)
+
+```
+
+### 3. Create URL Patterns
+
+Under `backend/health_check/urls.py`:
+
+```python
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.health_check_basic, name='health_check_basic'),
+    path('db/', views.health_check_db, name='health_check_db'),
+]
+```
+
+### 4. Register the App and URLs
+
+Under `backend/backend/settings.py`:
+
+```python
+INSTALLED_APPS = [
+    # Existing apps...
+    'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'api_auth',
+    'health_check',  # Add this line
+]
+```
+
+Under `backend/backend/urls.py`:
+
+```python
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/auth/', include('api_auth.urls')),
+    path('health/', include('health_check.urls')),  # Add this line
+]
+```
+
+Until this step, you can start to test the health check endpoints in your dev environment:
+
+```bash
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+Once server is up, access `http://localhost:8000/health` and `http://localhost:8000/health/db`. Or simply:
+
+```bash
+# Test basic health check
+curl https://api.haodevelop.com/health/
+
+# Test database health check
+curl https://api.haodevelop.com/health/db/
+```
+
+You should get status 200 for both
+
+### 5. Configure Nginx to Forward Health Check Requests
+
+Update `nginx.digitalocean.ssl.conf`:
+
+```nginx
+# HTTPS - proxy all requests to Django
+server {
+    # Existing configuration...
+    
+    # Health check endpoint - no rate limiting
+    location /health/ {
+        proxy_pass http://django_backend;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        
+        # Don't apply rate limiting to health checks
+        # Add explicit access for monitoring tools if needed
+        # allow 10.0.0.1;  # Example IP for a monitoring server
+    }
+    
+    # Your existing locations...
+}
+```
+
+### 6. Set Up External Monitoring
+
+You can create any external monitoring (e.g. by cron job) to regularly access the health check endpoints.
+
+If the health check fails, it can automatically send the notification to the dev team

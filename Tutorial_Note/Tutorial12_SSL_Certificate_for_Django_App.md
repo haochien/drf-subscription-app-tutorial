@@ -187,9 +187,11 @@ Add following part in `settings.py`
 
 # SSL setting
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+# In dev, we don't have ssl connection.Thus we use DEBUG flag to distinguish PROD and DEV environment
 ```
 
 1. `SECURE_PROXY_SSL_HEADER`:
