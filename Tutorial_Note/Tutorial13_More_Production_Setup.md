@@ -8,7 +8,7 @@ The list below contains all suggested items:
 * Set up database backups
 * Configure proper Gunicorn workers
 * Add HTTP security headers
-* Implement rate limiting
+* Implement global rate limiting
 * Add basic health check endpoint
 
 ## Generate and update SECRET_KEY
@@ -542,3 +542,64 @@ Following three headers are mainly for HTML content
     If a user is on your secure checkout page (https://yoursite.com/checkout) and clicks a link to another secure site,
 
     the destination will know they came from your checkout page. But if they click a link to a non-secure site, no information is shared about where they came from.
+
+## Implement global rate limiting
+
+Rate limiting is crucial for several important reasons:
+
+* **Prevent abuse and DoS attacks**: Without limits, attackers could flood your API with requests, overwhelming your server resources and causing service degradation for legitimate users.
+* **Control infrastructure costs**: Especially in cloud environments where you pay for compute resources, rate limiting helps ensure predictable resource usage and costs.
+* **Protect against scraping**: Prevents automated scraping tools from harvesting all your data at once.
+* **Ensure fair usage**: Prevents a single client from monopolizing your server resources, ensuring all users get reasonable access.
+* **Shield downstream services**: Protects databases and third-party services you depend on from excessive load.
+
+Rate limiting works by tracking the number of requests from a specific source (usually by IP address or API key) within a defined time window.
+
+When the limit is exceeded, additional requests are rejected with a status code (typically 429 Too Many Requests) until the time window resets.
+
+Our rate limit strategy:
+
+1. Global limits apply to all endpoints (implement in Nginx server) to prevent basic DoS attacks
+2. More sophisticated, user-aware rate limiting with business logic  (implemented already in Django application side)
+
+For global limits, make following changes in `nginx.digitalocean.ssl.conf`:
+
+```nginx
+
+# Define a global rate limiting zone (all IPs share this limit)
+limit_req_zone $binary_remote_addr zone=per_second:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=per_minute:10m rate=60r/m;
+
+# HTTPS server block
+server {
+    listen 443 ssl;
+    ...
+
+    location / {
+        # Apply limits
+        limit_req zone=per_second burst=20 nodelay;
+        limit_req zone=per_minute burst=10 nodelay;
+        
+        # Your existing proxy configuration
+        proxy_pass http://django_backend;
+        ...
+    }
+    ...
+}
+```
+
+Key components:
+
+* `limit_req_zone`: Defines a shared memory zone for tracking client requests
+* `$binary_remote_addr`: Uses binary form of client IP to save memory
+* `zone=per_second:10m`: Names the zone and allocates 10MB of memory (each 1MB can track about 16,000 IP addresses)
+* `rate=60r/m`: Sets the limit to 60 requests per minute
+* `burst=20`: Allows a burst of 20 additional requests beyond the limit
+* `nodelay`: Processes requests in the burst immediately rather than queueing them
+
+This configuration:
+
+* Sets two global rate limit (10 requests per second + 60 requests per minute)
+* Doesn't try to distinguish between user types (that's left to Django)
+* Uses $binary_remote_addr for efficient IP tracking
+* Allows a burst of 20 requests per second and 10 request per minute to handle legitimate traffic spikes
