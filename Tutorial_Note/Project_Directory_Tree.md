@@ -35,6 +35,7 @@ drf-subscription-app-Tutorial/
 │  ├─ .env
 │  ├─ .deploy.sh
 │  ├─ gunicorn.conf.py
+│  ├─ gunicorn.digitalocean.conf.py
 │  ├─ entrypoint.sh
 │  ├─ .dockerignore
 │  ├─ Dockerfile.dev

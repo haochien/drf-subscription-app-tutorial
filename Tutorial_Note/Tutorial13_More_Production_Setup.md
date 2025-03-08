@@ -427,3 +427,118 @@ There are few updates in gunicorn configuration comparing to the previous versio
 >    Pros: Excellent performance for async Django and frameworks like FastAPI
 >    Cons: Requires ASGI-compatible code (though regular Django views still work)
 >    ```
+
+## Add HTTP security headers
+
+There are some helpful headers should be added to the HTTPS server block in `nginx.digitalocean.ssl.conf`:
+
+```nginx
+server {
+    listen 443 ssl;
+    ...
+
+    # OCSP Stapling
+    ...
+
+    # HTTP Security Headers
+    add_header X-Content-Type-Options nosniff;
+    add_header Referrer-Policy no-referrer-when-downgrade;ㄋ
+    #add_header X-Frame-Options SAMEORIGIN;
+    #add_header X-XSS-Protection "1; mode=block";
+    #add_header Content-Security-Policy "default-src 'self'; script-src 'self'; img-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self';";
+    
+
+    location / {
+        proxy_pass http://django_backend;
+        ...
+    }
+
+}
+```
+
+Adding these security headers is absolutely necessary for a production application. They protect against:
+
+* Content type sniffing attacks
+* Clickjacking attacks
+* Cross-site scripting (XSS) attacks
+* Unauthorized resource loading
+* Information leakage via referrers
+
+The absence of these headers leaves your application vulnerable to these attack vectors. In a production environment handling user data, these protections are essential.
+
+Since our django app is a backend-only API (only returns data (JSON/XML)) and doesn't serve HTML, we just require:
+
+* X-Content-Type-Options (still useful for all response types)
+* Referrer-Policy (helps with privacy when your API makes external calls)
+
+Following three headers are mainly for HTML content
+
+* X-Frame-Options
+* X-XSS-Protection
+* Content-Security-Policy
+
+1. `add_header X-Content-Type-Options nosniff;`:
+
+    This tells browsers to trust exactly what type of file you say you're sending, and not try to guess.
+
+    Imagine you have a text file on your website that happens to contain some code-like content.
+
+    Without this header, if someone downloads this file, their browser might think "This looks like JavaScript" and try to run it, even though it's just supposed to be text.
+
+    Attackers could upload files that look innocent (like profile pictures) but contain hidden code. Browsers might try to "be helpful" and run this code, causing security problems.
+
+    > Browsers use the MIME type, not the file extension, to determine how to process a URL,
+    >
+    > so it's important that web servers send the correct MIME type in the response's Content-Type header.
+    >
+    > If this is not correctly configured, browsers are likely to misinterpret the contents of files, sites will not work correctly, and downloaded files may be mishandled.
+
+    This helps prevent XSS attacks that rely on MIME type confusion
+
+2. `add_header X-Frame-Options SAMEORIGIN;`:
+
+    This prevents other websites from putting your website inside a frame (like a window within their page).
+
+    `SAMEORIGIN` value only allows the page to be displayed in a frame on the same origin as the page itself.
+
+    This can protects against `clickjacking` attacks where attackers trick users into clicking something different from what they perceive.
+
+    If your API responses need to be embedded in iframes on other domains, you'd need to change from `SAMEORIGIN` to `ALLOW-FROM https://trusted-site.com` or remove it.
+
+3. `add_header X-XSS-Protection "1; mode=block";`:
+
+    This activates a built-in security feature in older browsers that helps prevent attackers from injecting malicious scripts into your pages.
+
+    Older browsers might be more vulnerable to attacks where malicious code is injected into your pages. 
+
+    Modern browsers have better protections, so this is less critical but still helpful for older browser support.
+
+4. `add_header Content-Security-Policy "default-src 'self'; script-src 'self'; img-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self';";`:
+
+    This creates a strict list of rules about what content your website is allowed to load and from where.
+
+    By setting this to 'self', you're saying "only load scripts, images, styles, fonts, and make connections to our own domain."
+
+    So if an attacker somehow injects code that tries to load a malicious script from evil-hacker.com, the browser will refuse to load it.
+
+    If malicious code somehow ends up on your page (through a vulnerability), it could load additional resources from anywhere on the internet, potentially stealing data or taking control of the user's experience.
+
+    If your frontend needs to connect to multiple backends (both your API and external services directly), you'll need to adjust the CSP on your frontend server. For example:
+
+    ```nginx
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://trusted-cdn.com; img-src 'self' https://image-cdn.com data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.yourdomain.com https://other-api.com;";
+    ```
+
+    * Allows scripts from your domain and a trusted CDN
+    * Allows images from your domain, an image CDN, and data URIs
+    * Allows styles from your domain and Google Fonts (with inline styles)
+    * Allows fonts from your domain and Google Fonts
+    * Allows connections to your domain, your API, and another third-party API
+
+5. `add_header Referrer-Policy no-referrer-when-downgrade;`:
+
+    This controls what information about the previous page is shared when a user clicks a link to leave your site.
+
+    If a user is on your secure checkout page (https://yoursite.com/checkout) and clicks a link to another secure site,
+
+    the destination will know they came from your checkout page. But if they click a link to a non-secure site, no information is shared about where they came from.
