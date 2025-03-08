@@ -36,4 +36,4 @@ fi
 
 # Start Gunicorn
 echo "Starting Gunicorn..."
-exec gunicorn backend.wsgi:application -c gunicorn.conf.py
+exec gunicorn backend.wsgi:application -c gunicorn.digitalocean.conf.py
