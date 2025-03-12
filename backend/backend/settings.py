@@ -239,3 +239,20 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+
+# Email Configuration
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = ENV('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = ENV('EMAIL_PORT', default=587)
+    EMAIL_USE_TLS = ENV('EMAIL_USE_TLS', default=True)
+    EMAIL_HOST_USER = ENV('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = ENV('EMAIL_HOST_PASSWORD')
+
+DEFAULT_FROM_EMAIL = ENV('DEFAULT_FROM_EMAIL', default='Recipe App <noreply@example.com>')
+FRONTEND_URL = ENV('FRONTEND_URL', default='http://localhost:5173')
+
+# Template directory
+TEMPLATES[0]['DIRS'] = [os.path.join(BASE_DIR, 'templates')]

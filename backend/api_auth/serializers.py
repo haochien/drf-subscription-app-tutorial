@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import TestModel, Profile
+from .models import TestModel, Profile, User, EmailVerification
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -13,7 +13,8 @@ class TestModelSerializer(serializers.ModelSerializer):
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'is_active', 'is_staff', 'last_login', 'date_joined', 'register_method')
+        fields = ('id', 'email', 'is_active', 'is_email_verified', 'is_staff', 
+                  'last_login', 'date_joined', 'register_method', 'tier')
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -42,3 +43,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         Profile.objects.update_or_create(user=user, defaults=profile_data)
         return user
 
+
+class EmailVerificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailVerification
+        fields = ('token',)
+        read_only_fields = ('token',)
+
+class ResendVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField()

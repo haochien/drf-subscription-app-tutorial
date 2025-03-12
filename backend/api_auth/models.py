@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
+import uuid
+from datetime import timedelta
 
 class TestModel(models.Model):
     test_id = models.AutoField(primary_key=True)
@@ -28,7 +30,9 @@ class UserManager(BaseUserManager):
         is_active=True,
         is_superuser=is_superuser, 
         last_login=now,
-        date_joined=now, 
+        date_joined=now,
+        is_email_verified=False,
+        tier='free'  # Default tier for new users 
         **extra_fields
     )
     user.set_password(password)
@@ -47,6 +51,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    is_email_verified = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
 
@@ -59,7 +64,18 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=REGISTRATION_CHOICES,
         default='email'
     )
-    
+
+    TIER_CHOICES = [
+        ('free', 'Free'),
+        ('basic', 'Basic'),
+        ('premium', 'Premium'),
+    ]
+    tier = models.CharField(
+        max_length=10,
+        choices=TIER_CHOICES,
+        default='free'
+    )
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
@@ -90,4 +106,26 @@ class Profile(models.Model):
         return f"{self.user.email}'s profile"
 
     class Meta:
-        db_table = 'profile' 
+        db_table = 'profile'
+
+
+class EmailVerification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(days=2)  # Token valid for 2 days
+        super().save(*args, **kwargs)
+
+    def is_valid(self):
+        return not self.is_used and self.expires_at > timezone.now()
+
+    def __str__(self):
+        return f"Verification for {self.user.email}"
+
+    class Meta:
+        db_table = 'email_verification'

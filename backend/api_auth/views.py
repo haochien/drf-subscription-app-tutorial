@@ -1,14 +1,15 @@
 import requests
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import viewsets, generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import TestModel, Profile
-from .serializers import TestModelSerializer, RegisterSerializer
+from .models import TestModel, Profile, EmailVerification
+from .serializers import TestModelSerializer, RegisterSerializer, EmailVerificationSerializer, ResendVerificationSerializer
 import logging
+from .utils import send_verification_email, send_welcome_email
 
 from django.contrib.auth import get_user_model
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -40,6 +41,13 @@ class CustomRegisterView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
+    
+    def perform_create(self, serializer):
+        user = serializer.save()
+        # Create verification token
+        verification = EmailVerification.objects.create(user=user)
+        # Send verification email
+        send_verification_email(user, verification.token)
 
 
 class GoogleLoginView(APIView):
@@ -116,3 +124,78 @@ class GoogleOAuth2CallbackView(APIView):
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         })
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, token):
+        try:
+            verification = get_object_or_404(EmailVerification, token=token)
+            
+            if not verification.is_valid():
+                return Response(
+                    {'error': 'Verification link has expired or already been used'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            user = verification.user
+            user.is_email_verified = True
+            user.save()
+            
+            verification.is_used = True
+            verification.save()
+            
+            # Send welcome email
+            send_welcome_email(user)
+            
+            return Response({'message': 'Email verified successfully'})
+            
+        except Exception as e:
+            logger.error(f"Email verification failed: {str(e)}")
+            return Response(
+                {'error': 'Invalid verification token'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class ResendVerificationView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = ResendVerificationSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            
+            try:
+                user = User.objects.get(email=email)
+                
+                if user.is_email_verified:
+                    return Response(
+                        {'message': 'Email already verified'}, 
+                        status=status.HTTP_200_OK
+                    )
+                
+                # Delete any existing verification tokens
+                user.verification_tokens.all().delete()
+                
+                # Create new verification token
+                verification = EmailVerification.objects.create(user=user)
+                
+                # Send verification email
+                send_verification_email(user, verification.token)
+                
+                return Response(
+                    {'message': 'Verification email sent successfully'}, 
+                    status=status.HTTP_200_OK
+                )
+                
+            except User.DoesNotExist:
+                # Don't reveal that the user doesn't exist for security
+                return Response(
+                    {'message': 'If your account exists, a verification email will be sent'}, 
+                    status=status.HTTP_200_OK
+                )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

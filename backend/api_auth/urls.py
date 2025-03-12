@@ -16,4 +16,6 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('google/login/', views.GoogleLoginView.as_view(), name='google_login'),
     path('google/callback/', views.GoogleOAuth2CallbackView.as_view(), name='google_callback'),
+    path('verify-email/<uuid:token>/', views.VerifyEmailView.as_view(), name='verify_email'),
+    path('resend-verification/', views.ResendVerificationView.as_view(), name='resend_verification'),
 ]
