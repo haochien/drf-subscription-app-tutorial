@@ -18,4 +18,5 @@ urlpatterns = [
     path('google/callback/', views.GoogleOAuth2CallbackView.as_view(), name='google_callback'),
     path('verify-email/<uuid:token>/', views.VerifyEmailView.as_view(), name='verify_email'),
     path('resend-verification/', views.ResendVerificationView.as_view(), name='resend_verification'),
+    path('profile/', views.UserProfileView.as_view(), name='user_profile'),
 ]

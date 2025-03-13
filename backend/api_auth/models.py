@@ -32,7 +32,7 @@ class UserManager(BaseUserManager):
         last_login=now,
         date_joined=now,
         is_email_verified=False,
-        tier='free'  # Default tier for new users 
+        tier='free',  # Default tier for new users 
         **extra_fields
     )
     user.set_password(password)

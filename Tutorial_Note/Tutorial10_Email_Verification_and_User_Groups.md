@@ -213,7 +213,7 @@ class UserManager(BaseUserManager):
         last_login=now,
         date_joined=now,
         is_email_verified=False, # Add this line.
-        tier='free'  # Add this line. Default tier for new users 
+        tier='free',  # Add this line. Default tier for new users 
         **extra_fields
     )
     user.set_password(password)

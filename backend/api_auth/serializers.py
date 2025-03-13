@@ -44,11 +44,5 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-class EmailVerificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailVerification
-        fields = ('token',)
-        read_only_fields = ('token',)
-
 class ResendVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()

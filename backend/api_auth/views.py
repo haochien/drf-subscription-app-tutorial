@@ -7,7 +7,7 @@ from rest_framework import viewsets, generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import TestModel, Profile, EmailVerification
-from .serializers import TestModelSerializer, RegisterSerializer, EmailVerificationSerializer, ResendVerificationSerializer
+from .serializers import TestModelSerializer, RegisterSerializer, ResendVerificationSerializer, CustomUserSerializer, ProfileSerializer
 import logging
 from .utils import send_verification_email, send_welcome_email
 
@@ -110,7 +110,11 @@ class GoogleOAuth2CallbackView(APIView):
         user.last_login = timezone.now()
         if created:
             user.register_method = "google"
+            user.is_email_verified = True  # Google accounts have verified emails
             user.save()
+
+            # Send welcome email to new Google users
+            send_welcome_email(user)
         
         # Update profile
         Profile.objects.update_or_create(
@@ -199,3 +203,24 @@ class ResendVerificationView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        profile = user.profile
+        
+        # Serialize user data
+        user_data = CustomUserSerializer(user).data
+        
+        # Serialize profile data
+        profile_data = ProfileSerializer(profile).data
+        
+        # Combine data
+        response_data = {
+            **user_data,
+            'profile': profile_data
+        }
+        
+        return Response(response_data)
