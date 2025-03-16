@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('api_auth.urls')),
     path('health/', include('health_check.urls')),
+    path('api/subscriptions/', include('subscriptions.urls')),
 ] 
 
 # if bool(settings.DEBUG):

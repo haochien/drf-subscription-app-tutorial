@@ -56,7 +56,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'api_auth',
-    'health_check'
+    'health_check',
+    'subscriptions'
 ]
 
 MIDDLEWARE = [
@@ -252,7 +253,7 @@ else:
     EMAIL_HOST_PASSWORD = ENV('EMAIL_HOST_PASSWORD')
 
 DEFAULT_FROM_EMAIL = ENV('DEFAULT_FROM_EMAIL', default='Recipe App <noreply@example.com>')
-FRONTEND_URL = ENV('FRONTEND_URL', default='http://localhost:5173')
+FRONTEND_URL = ENV('FRONTEND_URL', default='http://localhost:5173')  # Frontend URL for redirects
 
 # Template directory
 TEMPLATES[0]['DIRS'] = [os.path.join(BASE_DIR, 'templates')]
